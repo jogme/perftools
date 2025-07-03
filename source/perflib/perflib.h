@@ -30,6 +30,8 @@ typedef HANDLE thread_t;
 
 typedef pthread_t thread_t;
 
+typedef int (*crit_section)(void);
+
 # endif
 
 int perflib_run_multi_thread_test(void (*f)(size_t), size_t threadcount,
@@ -51,5 +53,7 @@ int perflib_create_ssl_objects(SSL_CTX *serverctx, SSL_CTX *clientctx,
 int perflib_create_bare_ssl_connection(SSL *serverssl, SSL *clientssl, int want);
 int perflib_create_ssl_connection(SSL *serverssl, SSL *clientssl, int want);
 void perflib_shutdown_ssl_connection(SSL *serverssl, SSL *clientssl);
+
+ssize_t perflib_count_critical_section(const crit_section func, const OSSL_TIME *max_time);
 
 #endif

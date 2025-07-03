@@ -51,7 +51,7 @@ static void do_handshake(size_t num)
     SSL *clientssl = NULL, *serverssl = NULL;
     int ret = 1;
     size_t i;
-    OSSL_TIME time;
+    //OSSL_TIME time;
     SSL_CTX *lsctx = NULL;
     SSL_CTX *lcctx = NULL;
 
@@ -60,8 +60,37 @@ static void do_handshake(size_t num)
         lcctx = cctx;
     }
 
-    counts[num] = 0;
+    //counts[num] = 0;
 
+    int crit_section() {
+        if (share_ctx == 0) {
+            if (!perflib_create_ssl_ctx_pair(TLS_server_method(),
+                                             TLS_client_method(),
+                                             0, 0, &lsctx, &lcctx, cert,
+                                             privkey)) {
+                printf("Failed to create SSL_CTX pair\n");
+                return -1;
+            }
+        }
+
+        ret = perflib_create_ssl_objects(lsctx, lcctx, &serverssl, &clientssl,
+                                         NULL, NULL);
+        ret &= perflib_create_ssl_connection(serverssl, clientssl,
+                                             SSL_ERROR_NONE);
+        perflib_shutdown_ssl_connection(serverssl, clientssl);
+        serverssl = clientssl = NULL;
+        if (share_ctx == 0) {
+            SSL_CTX_free(lsctx);
+            SSL_CTX_free(lcctx);
+            lsctx = lcctx = NULL;
+        }
+
+        return 0;
+    }
+
+    counts[num] = perflib_count_critical_section(crit_section, &max_time);
+
+    /*
     do {
         if (share_ctx == 0) {
             if (!perflib_create_ssl_ctx_pair(TLS_server_method(),
@@ -89,6 +118,9 @@ static void do_handshake(size_t num)
     } while (time.t < max_time.t);
 
     if (!ret)
+        err = 1;
+    */
+    if (counts[num] == -1)
         err = 1;
 }
 

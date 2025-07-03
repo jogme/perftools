@@ -277,3 +277,18 @@ void perflib_shutdown_ssl_connection(SSL *serverssl, SSL *clientssl)
     SSL_free(serverssl);
     SSL_free(clientssl);
 }
+
+ssize_t perflib_count_critical_section(const crit_section func, const OSSL_TIME *max_time)
+{
+    OSSL_TIME time;
+    size_t count = 0;
+
+    do {
+        if (func() == -1)
+            return -1;
+        count++;
+        time = ossl_time_now();
+    } while (time.t < max_time->t);
+
+    return count;
+}
