@@ -205,7 +205,7 @@ function install_aws_lc {
 	cd "${WORKSPACE_ROOT}"
 	mkdir -p "${AWS_NAME}"
 	cd "${AWS_NAME}"
-	git clone "${AWS_REPO}" . || exit 1
+	git clone "${AWS_REPO}" --depth 1 . || exit 1
 	cmake -B build -DCMAKE_INSTALL_PREFIX="${INSTALL_ROOT}/${AWS_NAME}" \
 	    -DBUILD_SHARED_LIBS=1 \
 	    -DCMAKE_BUILD_TYPE=Release || exit 1
