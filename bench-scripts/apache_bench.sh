@@ -147,7 +147,7 @@ function install_apache {
 	typeset BASENAME='httpd'
 	typeset DOWNLOAD_FILE="${BASENAME}-${VERSION}.${SUFFIX}"
 	typeset BUILD_DIR="${BASENAME}-${VERSION}"
-	typeset DOWNLOAD_URL='https://archive.apache.org/dist/httpd'
+	typeset DOWNLOAD_URL="https://archive.apache.org/dist/${BASENAME}"
 	typeset DOWNLOAD_LINK="${DOWNLOAD_URL}/${DOWNLOAD_FILE}"
 	typeset SSL_LIB=$1
 
