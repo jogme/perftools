@@ -349,7 +349,7 @@ function install_wolf_apache {
 	bundle_apr "${WORKSPACE_ROOT}/${BUILD_DIR}/srclib"
 	cd "${BUILD_DIR}"
 	#
-	# unlike other ssl implementations wofl requires
+	# unlike other ssl implementations wolf requires
 	# mod_ssl to be linked statically with apache daemon
 	#
 	PATH=${PATH}:"${INSTALL_ROOT}/${SSL_LIB}/bin" ./buildconf || exit 1
