@@ -158,7 +158,7 @@ function setup_sslib_for_nginx {
 	#
 	mkdir -p .openssl/lib
 	#
-	# this is a hack nginx wants to link with static libary,
+	# this is a hack nginx wants to link with static library,
 	# however we will be using dynamic library .so
 	#
 	touch .openssl/lib/libcrypto.a
