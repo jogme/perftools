@@ -453,8 +453,8 @@ function config_apache {
 	# load mpm configuration
 	#
 	cp "${HTTPS_CONF_FILE}" "${HTTPS_CONF_FILE}".wrk
-	 sed -e 's/\(^#\)\(Include conf.*httpd-mpm.conf$\)/\2/g' "${HTTPS_CONF_FILE}".wrk
-	    "${HTTPS_CONF_FILE}" || exit 1
+	sed -e 's/\(^#\)\(Include conf.*httpd-mpm.conf$\)/\2/g' \
+	    "${HTTPS_CONF_FILE}".wrk > "${HTTPS_CONF_FILE}" || exit 1
 
 	gen_certkey $SERVERCERT $SERVERKEY
 
