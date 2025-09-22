@@ -1,4 +1,4 @@
-#!/bin/ksh -x
+#!/usr/bin/env ksh
 #
 # Copyright 2025 The OpenSSL Project Authors. All Rights Reserved.
 #
@@ -7,6 +7,8 @@
 # in the file LICENSE in the source distribution or at
 # https://www.openssl.org/source/license.html
 #
+
+set -x
 
 function check_env {
 	if [[ ! -x "$(which gnuplot)" ]] ; then

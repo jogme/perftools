@@ -1,4 +1,4 @@
-#!/bin/ksh -x
+#!/usr/bin/env ksh
 #
 # Copyright 2025 The OpenSSL Project Authors. All Rights Reserved.
 #
@@ -7,6 +7,8 @@
 # in the file LICENSE in the source distribution or at
 # https://www.openssl.org/source/license.html
 #
+
+set -x
 
 #
 #
@@ -50,9 +52,9 @@
 #  4.0M Sep 12 14:49 test_16.txt
 #
 
-INSTALL_ROOT=${BENCH_INSTALL_ROOT:-"$HOME/work.openssl/bench.binaries"}
+INSTALL_ROOT=${BENCH_INSTALL_ROOT:-"/tmp/bench.binaries"}
 RESULT_DIR=${BENCH_RESULTS:-"${INSTALL_ROOT}/results"}
-WORKSPACE_ROOT=${BENCH_WORKSPACE_ROOT:-"$HOME/work.openssl/bench.workspace"}
+WORKSPACE_ROOT=${BENCH_WORKSPACE_ROOT:-"/tmp/bench.workspace"}
 MAKE_OPTS=${BENCH_MAKE_OPTS}
 HTTPS_PORT=${BENCH_HTTPS_PORT:-'4430'}
 HTTP_PORT=${BENCH_HTTP_PORT:-'8080'}
@@ -178,7 +180,7 @@ function install_apache_aws {
 	typeset BASENAME='httpd'
 	typeset DOWNLOAD_FILE="${BASENAME}-${VERSION}.${SUFFIX}"
 	typeset BUILD_DIR="${BASENAME}-${VERSION}"
-	typeset DOWNLOAD_URL='https://archive.apache.org/dist/httpd'
+	typeset DOWNLOAD_URL="https://archive.apache.org/dist/${BASENAME}"
 	typeset DOWNLOAD_LINK="${DOWNLOAD_URL}/${DOWNLOAD_FILE}"
 	typeset SSL_LIB=$1
 
@@ -313,7 +315,7 @@ function install_wolf_apache {
 	typeset BASENAME='httpd'
 	typeset DOWNLOAD_FILE="${BASENAME}-${VERSION}.${SUFFIX}"
 	typeset BUILD_DIR="${BASENAME}-${VERSION}"
-	typeset DOWNLOAD_URL='https://archive.apache.org/dist/httpd'
+	typeset DOWNLOAD_URL="https://archive.apache.org/dist/${BASENAME}"
 	typeset DOWNLOAD_LINK="${DOWNLOAD_URL}/${DOWNLOAD_FILE}"
 	typeset SSL_LIB=$1
 

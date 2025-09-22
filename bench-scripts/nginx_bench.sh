@@ -1,4 +1,4 @@
-#!/bin/ksh -x
+#!/usr/bin/env ksh
 #
 # Copyright 2025 The OpenSSL Project Authors. All Rights Reserved.
 #
@@ -8,15 +8,17 @@
 # https://www.openssl.org/source/license.html
 #
 
+set -x
+
 #
 #
 # make sure to disable firewall
 #	ufw disable
 # it feels like ipv6 loopback traffic is disabled on ubuntu
 #
-INSTALL_ROOT=${BENCH_INSTALL_ROOT:-"$HOME/work.openssl/bench.binaries"}
+INSTALL_ROOT=${BENCH_INSTALL_ROOT:-"/tmp/bench.binaries"}
 RESULT_DIR=${BENCH_RESULTS:-"${INSTALL_ROOT}/results"}
-WORKSPACE_ROOT=${BENCH_WORKSPACE_ROOT:-"$HOME/work.openssl/bench.workspace"}
+WORKSPACE_ROOT=${BENCH_WORKSPACE_ROOT:-"/tmp/bench.workspace"}
 MAKE_OPTS=${BENCH_MAKE_OPTS}
 HTTPS_PORT=${BENCH_HTTPS_PORT:-'4430'}
 HTTP_PORT=${BENCH_HTTP_PORT:-'8080'}
@@ -287,9 +289,6 @@ function install_nginx {
 	typeset NGIX_REPO='https://github.com/nginx/nginx'
 	typeset VERSION='1.28'
 	typeset BASENAME='nginx'
-	if [[ -z "${VERSION}" ]] ; then
-		VERSION='master'
-	fi
 	typeset DIRNAME="${BASENAME}-${VERSION}"
 
 	if [[ -z "${SSL_LIB}" ]] ; then
@@ -300,9 +299,6 @@ function install_nginx {
 	mkdir -p "${DIRNAME}"
 	cd "${DIRNAME}"
 	git clone "${NGIX_REPO}" -b stable-${VERSION} --depth 1 . || exit 1
-	if [[ -n "${VERSION}" ]] ; then
-		git checkout -b stable-${VERSION} origin/stable-${VERSION} || exit 1
-	fi
 
 	#
 	# note ngix unlike apache requires pointer to ssl sources
@@ -332,9 +328,6 @@ function install_wolf_nginx {
 	typeset NGIX_REPO='https://github.com/nginx/nginx'
 	typeset VERSION='1.24'
 	typeset BASENAME='nginx'
-	if [[ -z "${VERSION}" ]] ; then
-		VERSION='master'
-	fi
 	typeset DIRNAME="${BASENAME}-${VERSION}"
 
 	if [[ -z "${SSL_LIB}" ]] ; then
@@ -345,9 +338,6 @@ function install_wolf_nginx {
 	mkdir -p "${DIRNAME}"
 	cd "${DIRNAME}"
 	git clone "${NGIX_REPO}" -b stable-${VERSION} --depth 1 . || exit 1
-	if [[ -n "${VERSION}" ]] ; then
-		git checkout -b stable-${VERSION} origin/stable-${VERSION} || exit 1
-	fi
 
 	cd "${WORKSPACE_ROOT}"
 	git clone https://github.com/wolfssl/wolfssl-nginx --depth 1 || exit 1
