@@ -342,7 +342,7 @@ function install_wolf_apache {
 	# https://github.com/wolfSSL/osp
 	# we need this to obtain patch for apache sources
 	#
-	git clone https://github.com/wolfSSL/osp || exit 1
+	git clone https://github.com/wolfSSL/osp --depth 1 || exit 1
 	cd "${BUILD_DIR}"
 	patch -p1 < ../osp/apache-httpd/svn_apache-${VERSION}_patch.diff || exit 1
 	cd "${WORKSPACE_ROOT}"
