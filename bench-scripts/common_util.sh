@@ -118,7 +118,7 @@ function install_openssl {
 		"${OPENSSL_REPO}" . || exit 1
 
 	./Configure --prefix="${INSTALL_ROOT}/${DIRNAME}" \
-		--libdir="${INSTALL_ROOT}/${DIRNAME}/lib" || exit 1
+		--libdir="${INSTALL_ROOT}/${DIRNAME}/lib" no-docs || exit 1
 	make ${MAKE_OPTS} || exit 1
 	make ${MAKE_OPTS} install || exit 1
 }
