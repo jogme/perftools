@@ -130,7 +130,7 @@ HOST=${BENCH_HOST:-'127.0.0.1'}
 #	    }
 #	}
 #
-# the serverkey nad servercert are self-signed certificate for
+# the serverkey and servercert are self-signed certificate for
 # localhost/127.0.0.1
 #
 # The performance is tested using siege (https://github.com/JoeDog/siege
