@@ -350,7 +350,7 @@ function install_wolf_nginx {
 	fi
 
 	cd "${WORKSPACE_ROOT}"
-	git clone https://github.com/wolfssl/wolfssl-nginx || exit 1
+	git clone https://github.com/wolfssl/wolfssl-nginx --depth 1 || exit 1
 	cd "${DIRNAME}"
 	patch -p1 < ../wolfssl-nginx/nginx-${VERSION}.0-wolfssl.patch || exit 1
 
