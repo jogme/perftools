@@ -169,6 +169,7 @@ function install_apache {
 		--enable-ssl \
 		--disable-ab \
 		--with-included-apr \
+		--with-mpm=worker \
 		--with-ssl="${INSTALL_ROOT}/${SSL_LIB}" || exit 1
 	make ${MAKE_OPTS} || exit 1
 	make ${MAKE_OPTS} install || exit 1
@@ -243,6 +244,7 @@ EOF
 		--enable-ssl \
 		--disable-ab \
 		--with-included-apr \
+		--with-mpm=worker \
 		--with-ssl="${INSTALL_ROOT}/${SSL_LIB}" || exit 1
 	make ${MAKE_OPTS} || exit 1
 	make ${MAKE_OPTS} install || exit 1
@@ -362,7 +364,7 @@ function install_wolf_apache {
 		--with-included-apr \
 		--with-pcre="${INSTALL_ROOT}/${SSL_LIB}" \
 		--with-wolfssl="${INSTALL_ROOT}/${SSL_LIB}"\
-		--disable-shared \
+		--with-mpm=worker \
 		--with-libxml2 \
 		--enable-mods-static=all  || exit 1
 	make ${MAKE_OPTS} || exit 1
@@ -585,10 +587,7 @@ function run_tests {
 	done
 	run_test openssl-master
 	run_test libressl-4.1.0
-	#
-	# could not get apache with wolfssl working
-	#
-	# run_test wolfssl-5.8.2
+	run_test wolfssl-5.8.2
 	run_test boringssl
 	run_test aws-lc
 }
