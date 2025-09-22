@@ -12,7 +12,7 @@
 #
 # make sure to disable firewall
 #	ufw disable
-# it feels like ipv6 loopback traffic is disabled on ububtu
+# it feels like ipv6 loopback traffic is disabled on ubuntu
 #
 
 #
