@@ -449,6 +449,13 @@ function config_apache {
 	sed -e 's/\(^SSLSessionCache.*$\)/#\1/g' "${HTTPS_CONF_FILE}".wrk > \
 	    "${HTTPS_CONF_FILE}" || exit 1
 
+	#
+	# load mpm configuration
+	#
+	cp "${HTTPS_CONF_FILE}" "${HTTPS_CONF_FILE}".wrk
+	sed -e 's/\(^#\)\(Include conf/extra/httpd-mpm.conf\)/\2/g' "${HTTPS_CONF_FILE}".wrk > \
+	    "${HTTPS_CONF_FILE}" || exit 1
+
 	gen_certkey $SERVERCERT $SERVERKEY
 
 	generate_download_files "${INSTALL_ROOT}/${SSL_LIB}/htdocs"
