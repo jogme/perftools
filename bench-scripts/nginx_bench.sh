@@ -60,7 +60,7 @@ HOST=${BENCH_HOST:-'127.0.0.1'}
 #	-DCMAKE_INSTALL_PREFIX="${INSTALL_ROOT}/${BORING_NAME}" \
 #	-DBUILD_SHARED_LIBS=1 \
 #	-DCMAKE_BUILD_TYPE=Release
-# nginx build process needs to be adjusted too. It happens in seperate
+# nginx build process needs to be adjusted too. It happens in separate
 # function setup_sslib_for_nginx() here in shell. Basically we create
 # .openssl directory under $WORKSPACE_ROOT/boringssl sourcetree and populate
 # it with boringssl headers files and create ,openssl/lib/libcrypto.a
