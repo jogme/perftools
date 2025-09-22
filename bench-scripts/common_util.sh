@@ -281,3 +281,43 @@ function plot_results {
 	plot_chart 'throughput' 'Throughput' 'Throughput:'
 	plot_chart 'concurrency' 'Concurrency' 'Concurrency:'
 }
+
+function generate_download_files {
+	typeset HTDOCS=$1
+
+	mkdir -p ${HTDOCS} || exit 1
+
+	#
+	# we start with 64 bytes long file
+	#
+	for i in `seq 16` ; do
+		echo -n 'test' >> "${HTDOCS}"/test.txt
+	done
+
+	#
+	# here we double the size of last file with each
+	# iteration. starting at 64, then 128, 254, 512,...
+	#
+	typeset LAST="${HTDOCS}"/test.txt
+	for i in `seq 16` ; do
+		cat "${LAST}" "${LAST}" > "${HTDOCS}/test_${i}.txt"
+		LAST="${HTDOCS}/test_${i}.txt"
+	done
+}
+
+function gen_certkey {
+	typeset SERVERCERT=$1
+	typeset SERVERKEY=$2
+	typeset OPENSSL="${INSTALL_ROOT}"/openssl-master/bin/openssl
+
+	#
+	# generate self-signed cert with key
+	# note this is hack because we always assume
+	# openssl-master is installed in INSTALL root
+	#
+	$(LD_LIBRARY_PATH="${INSTALL_ROOT}/openssl-master/lib" "${OPENSSL}" \
+	    req -x509 -newkey rsa:4096 -days 180 -noenc -keyout \
+	    "${SERVERKEY}" -out "${SERVERCERT}" -subj "${CERT_SUBJ}" \
+	    -addext "${CERT_ALT_SUBJ}") || exit 1
+}
+

@@ -170,33 +170,6 @@ function setup_sslib_for_nginx {
 	cd "${WORKSPACE_ROOT}"
 }
 
-function generate_download_files {
-	typeset SSL_LIB=$1
-	typeset i=0
-
-	if [[ -z "${SSL_LIB}" ]] ; then
-		SSL_LIB='openssl-master'
-	fi
-
-	#
-	# we start with 64 bytes long file
-	#
-	typeset HTDOCS="${INSTALL_ROOT}/${SSL_LIB}"/html
-	for i in `seq 16` ; do
-		echo -n 'test' >> "${HTDOCS}"/test.txt
-	done
-
-	#
-	# here we double the size of last file with each
-	# iteration. starting at 64, then 128, 254, 512,...
-	#
-	typeset LAST="${HTDOCS}"/test.txt
-	for i in `seq 16` ; do
-		cat "${LAST}" "${LAST}" > "${HTDOCS}/test_${i}.txt"
-		LAST="${HTDOCS}/test_${i}.txt"
-	done
-}
-
 function config_nginx {
 	#
 	# this is hack as we always assume openssl from master version
@@ -206,7 +179,6 @@ function config_nginx {
 	if [[ -z $SSL_LIB ]] ; then
 		SSL_LIB='openssl-master'
 	fi
-	typeset OPENSSL="${INSTALL_ROOT}"/openssl-master/bin/openssl
 	typeset CONF="${INSTALL_ROOT}/${SSL_LIB}"/conf/nginx.conf
 	typeset SERVERCERT="${INSTALL_ROOT}/${SSL_LIB}/conf/server.crt"
 	typeset SERVERKEY="${INSTALL_ROOT}/${SSL_LIB}/conf/server.key"
@@ -270,18 +242,9 @@ http {
 
 
 EOF
+	gen_certkey $SERVERCERT $SERVERKEY
 
-	#
-	# generate self-signed cert with key
-	# note this is hack because we always assume
-	# openssl-master is installed in INSTALL root
-	#
-	$(LD_LIBRARY_PATH="${INSTALL_ROOT}/openssl-master/lib" "${OPENSSL}" \
-	    req -x509 -newkey rsa:4096 -days 180 -noenc -keyout \
-	    "${SERVERKEY}" -out "${SERVERCERT}" -subj "${CERT_SUBJ}" \
-	    -addext "${CERT_ALT_SUBJ}") || exit 1
-
-	generate_download_files "${SSL_LIB}"
+	generate_download_files "${INSTALL_ROOT}${SSL_LIB}/html"
 }
 
 function install_nginx {
