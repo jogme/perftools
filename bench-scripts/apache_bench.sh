@@ -594,7 +594,7 @@ function run_tests {
 	done
 	run_test openssl-master
 	run_test libressl-4.1.0
-	run_test wolfssl-5.8.2
+	#run_test wolfssl-5.8.2
 	run_test boringssl
 	run_test aws-lc
 }
