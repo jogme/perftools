@@ -12,7 +12,7 @@
 #
 # make sure to disable firewall
 #	ufw disable
-# it feels like ipv6 loopback traffic is disabled on ubunut
+# it feels like ipv6 loopback traffic is disabled on ubuntu
 #
 INSTALL_ROOT=${BENCH_INSTALL_ROOT:-"$HOME/work.openssl/bench.binaries"}
 RESULT_DIR=${BENCH_RESULTS:-"${INSTALL_ROOT}/results"}
