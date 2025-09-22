@@ -69,7 +69,7 @@ HOST=${BENCH_HOST:-'127.0.0.1'}
 # and .openssl/lib/libssl.a empty files using touch(1) this hack
 # is sufficient to get nginx build process going. The nginx expects
 # static libraries but we are forcing it to use dynamic versions
-# by tweaking --with-ld-opts flags.
+# by tweaking --with-ld-opt flags.
 #
 # there is a separate function install_wolf_nginx() which builds nginx
 # with wolfssl it follows guide found here:
@@ -244,7 +244,7 @@ http {
 EOF
 	gen_certkey $SERVERCERT $SERVERKEY
 
-	generate_download_files "${INSTALL_ROOT}${SSL_LIB}/html"
+	generate_download_files "${INSTALL_ROOT}/${SSL_LIB}/html"
 }
 
 function install_nginx {
@@ -313,7 +313,7 @@ function install_wolf_nginx {
 	./auto/configure --prefix="${INSTALL_ROOT}/${SSL_LIB}" \
 		--with-http_ssl_module \
 		--with-threads \
-		--with-ld-opts="-Wl,-rpath,${INSTALL_ROOT}/${SSL_LIB}/lib" \
+		--with-ld-opt="-Wl,-rpath,${INSTALL_ROOT}/${SSL_LIB}/lib" \
 		--with-wolfssl="${INSTALL_ROOT}/${SSL_LIB}" || exit 1
 	make ${MAKE_OPTS} || exit 1
 	make ${MAKE_OPTS} install || exit 1
