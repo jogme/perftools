@@ -344,7 +344,7 @@ function install_wolf_nginx {
 	cd "${WORKSPACE_ROOT}"
 	mkdir -p "${DIRNAME}"
 	cd "${DIRNAME}"
-	git clone "${NGIX_REPO}" . || exit 1
+	git clone "${NGIX_REPO}" -b stable-${VERSION} --depth 1 . || exit 1
 	if [[ -n "${VERSION}" ]] ; then
 		git checkout -b stable-${VERSION} origin/stable-${VERSION} || exit 1
 	fi
