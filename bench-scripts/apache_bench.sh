@@ -581,8 +581,10 @@ function run_test {
 	# we do care about httpd.conf and httpd-ssl.conf only as only
 	# those two were modified.
 	#
-	cp ${INSTALL_ROOT}/conf/httpd.conf ${RESULT_DIR}/httpd-${SSL_LIB}.conf
-	cp ${INSTALL_ROOT}/conf/extra/httpd-ssl.conf ${RESULT_DIR}/httpd-ssl-${SSL_LIB}.conf
+	cp ${INSTALL_ROOT}/${SSL_LIB}/conf/httpd.conf \
+	    ${RESULT_DIR}/httpd-${SSL_LIB}.conf
+	cp ${INSTALL_ROOT}/${SSL_LIB}/conf/extra/httpd-ssl.conf \
+	    ${RESULT_DIR}/httpd-ssl-${SSL_LIB}.conf
 }
 
 function setup_tests {
