@@ -421,6 +421,13 @@ function config_apache {
 	    "${CONF_FILE}".wrk > "${CONF_FILE}" || exit 1
 
 	#
+	# load mpm configuration
+	#
+	cp "${CONF_FILE}" "${CONF_FILE}".wrk
+	sed -e 's/\(^#\)\(Include conf.*httpd-mpm.conf$\)/\2/g' \
+	    "${CONF_FILE}".wrk > "${CONF_FILE}" || exit 1
+
+	#
 	#
 	# fix VirtualHost for 4430
 	#
@@ -448,13 +455,6 @@ function config_apache {
 	cp "${HTTPS_CONF_FILE}" "${HTTPS_CONF_FILE}".wrk
 	sed -e 's/\(^SSLSessionCache.*$\)/#\1/g' "${HTTPS_CONF_FILE}".wrk > \
 	    "${HTTPS_CONF_FILE}" || exit 1
-
-	#
-	# load mpm configuration
-	#
-	cp "${HTTPS_CONF_FILE}" "${HTTPS_CONF_FILE}".wrk
-	sed -e 's/\(^#\)\(Include conf.*httpd-mpm.conf$\)/\2/g' \
-	    "${HTTPS_CONF_FILE}".wrk > "${HTTPS_CONF_FILE}" || exit 1
 
 	gen_certkey $SERVERCERT $SERVERKEY
 
