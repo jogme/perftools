@@ -169,7 +169,7 @@ function install_apache {
 		--enable-ssl \
 		--disable-ab \
 		--with-included-apr \
-		--with-mpm=worker \
+		--enable-mpms-shared=all \
 		--with-ssl="${INSTALL_ROOT}/${SSL_LIB}" || exit 1
 	make ${MAKE_OPTS} || exit 1
 	make ${MAKE_OPTS} install || exit 1
@@ -244,7 +244,7 @@ EOF
 		--enable-ssl \
 		--disable-ab \
 		--with-included-apr \
-		--with-mpm=worker \
+		--enable-mpms-shared=all \
 		--with-ssl="${INSTALL_ROOT}/${SSL_LIB}" || exit 1
 	make ${MAKE_OPTS} || exit 1
 	make ${MAKE_OPTS} install || exit 1
@@ -364,7 +364,7 @@ function install_wolf_apache {
 		--with-included-apr \
 		--with-pcre="${INSTALL_ROOT}/${SSL_LIB}" \
 		--with-wolfssl="${INSTALL_ROOT}/${SSL_LIB}"\
-		--with-mpm=worker \
+		--enable-mpms-shared=all \
 		--with-libxml2 \
 		--enable-mods-static=all  || exit 1
 	make ${MAKE_OPTS} || exit 1
