@@ -416,6 +416,11 @@ function run_test {
 	# stop nginx server
 	#
 	LD_LIBRARY_PATH=${INSTALL_ROOT}/${SSL_LIB}/lib ${INSTALL_ROOT}/${SSL_LIB}/sbin/nginx -s quit
+
+	#
+	# save nginx.conf used for testing along the results
+	#
+	cp ${INSTALL_ROOT}/${SSL_LIB}/conf/nginx.conf ${RESULT_DIR}/nginx-${SSL_LIB}.conf
 }
 
 function run_tests {
