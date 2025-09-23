@@ -461,6 +461,72 @@ function config_apache {
 	generate_download_files "${INSTALL_ROOT}/${SSL_LIB}/htdocs"
 }
 
+function enable_mpm_event {
+	typeset SSL_LIB=$1
+	if [[ -z "${SSL_LIB}" ]] ; then
+		SSL_LIB='openssl-master'
+	fi
+	typeset CONF_FILE="${INSTALL_ROOT}/${SSL_LIB}/conf/httpd.conf"
+
+	#
+	# comment out currently loaded mpm module
+	#
+	cp "${CONF_FILE}" "${CONF_FILE}".wrk
+	sed -e 's/\(^LoadModule mpm_.*$\)/#\1/g' \
+	    "${CONF_FILE}".wrk > "${CONF_FILE}" || exit 1
+
+	#
+	# enable event mpm module
+	#
+	cp "${CONF_FILE}" "${CONF_FILE}".wrk
+	sed -e 's/\(^#\)(\LoadModule mpm_event_module .*$\)/\2/g' \
+	    "${CONF_FILE}".wrk > "${CONF_FILE}" || exit 1
+}
+
+function enable_mpm_worker {
+	typeset SSL_LIB=$1
+	if [[ -z "${SSL_LIB}" ]] ; then
+		SSL_LIB='openssl-master'
+	fi
+	typeset CONF_FILE="${INSTALL_ROOT}/${SSL_LIB}/conf/httpd.conf"
+
+	#
+	# comment out currently loaded mpm module
+	#
+	cp "${CONF_FILE}" "${CONF_FILE}".wrk
+	sed -e 's/\(^LoadModule mpm_.*$\)/#\1/g' \
+	    "${CONF_FILE}".wrk > "${CONF_FILE}" || exit 1
+
+	#
+	# enable worker mpm module
+	#
+	cp "${CONF_FILE}" "${CONF_FILE}".wrk
+	sed -e 's/\(^#\)(\LoadModule mpm_worker_module .*$\)/\2/g' \
+	    "${CONF_FILE}".wrk > "${CONF_FILE}" || exit 1
+}
+
+function enable_mpm_prefork {
+	typeset SSL_LIB=$1
+	if [[ -z "${SSL_LIB}" ]] ; then
+		SSL_LIB='openssl-master'
+	fi
+	typeset CONF_FILE="${INSTALL_ROOT}/${SSL_LIB}/conf/httpd.conf"
+
+	#
+	# comment out currently loaded mpm module
+	#
+	cp "${CONF_FILE}" "${CONF_FILE}".wrk
+	sed -e 's/\(^LoadModule mpm_.*$\)/#\1/g' \
+	    "${CONF_FILE}".wrk > "${CONF_FILE}" || exit 1
+
+	#
+	# enable pre-fork mpm module
+	#
+	cp "${CONF_FILE}" "${CONF_FILE}".wrk
+	sed -e 's/\(^#\)(\LoadModule mpm_worker_module .*$\)/\2/g' \
+	    "${CONF_FILE}".wrk > "${CONF_FILE}" || exit 1
+}
+
 function run_test {
 	typeset SSL_LIB=$1
 	typeset HTTP='https'
@@ -588,6 +654,14 @@ function setup_tests {
 }
 
 function run_tests {
+	typeset SAVE_RESULT_DIR="${RESULT_DIR}"
+
+	for i in event worker pre-fork ; do
+		mkdir -p ${RESULT_DIR}/$i || exit 1
+	done
+
+	enable_mpm_event
+	RESULT_DIR="${SAVE_RESULT_DIR}/event"
 	run_test nossl
 	for i in 3.0 3.1 3.2 3.3 3.4 3.5 3.6 ; do
 		run_test openssl-${i}
@@ -597,6 +671,32 @@ function run_tests {
 	#run_test wolfssl-5.8.2
 	run_test boringssl
 	run_test aws-lc
+
+	enable_mpm_worker
+	RESULT_DIR="${SAVE_RESULT_DIR}/worker"
+	run_test nossl
+	for i in 3.0 3.1 3.2 3.3 3.4 3.5 3.6 ; do
+		run_test openssl-${i}
+	done
+	run_test openssl-master
+	run_test libressl-4.1.0
+	#run_test wolfssl-5.8.2
+	run_test boringssl
+	run_test aws-lc
+
+	enable_mpm_prefork
+	RESULT_DIR="${SAVE_RESULT_DIR}/pre-fork"
+	run_test nossl
+	for i in 3.0 3.1 3.2 3.3 3.4 3.5 3.6 ; do
+		run_test openssl-${i}
+	done
+	run_test openssl-master
+	run_test libressl-4.1.0
+	#run_test wolfssl-5.8.2
+	run_test boringssl
+	run_test aws-lc
+
+	RESULT_DIR=${SAVE_RESULT_DIR}
 }
 
 check_env
