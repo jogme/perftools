@@ -710,6 +710,11 @@ function run_tests {
 check_env
 setup_tests
 run_tests
-plot_results
+SAVE_RESULT_DIR=${RESULT_DIR}
+for i in event worker pre-fork ; do
+	RESULT_DIR=${SAVE_RESULT_DIR}/$i
+	plot_results
+done
+RESULT_DIR=${SAVE_RESULT_DIR}
 
 echo "testing using siege is complete, results can be found ${RESULT_DIR}:"
