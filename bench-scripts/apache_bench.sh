@@ -204,15 +204,15 @@ function install_apache_boring {
 	cd "${BUILD_DIR}"
 cat <<EOF | patch -p0 || exit 1
 --- support/Makefile.in	2018-02-09 10:17:30.000000000 +0000
-+++ support/Makefile.in.new	2025-09-24 07:54:07.291492617 +0000
++++ support/Makefile.in	2025-09-24 07:54:07.291492617 +0000
 @@ -3,7 +3,7 @@
  
  CLEAN_TARGETS = suexec
  
 -bin_PROGRAMS = htpasswd htdigest htdbm ab logresolve httxt2dbm
 +bin_PROGRAMS = htpasswd htdigest htdbm logresolve httxt2dbm
- sbin_PROGRAMS = htcacheclean rotatelogs $(NONPORTABLE_SUPPORT)
- TARGETS  = $(bin_PROGRAMS) $(sbin_PROGRAMS)
+ sbin_PROGRAMS = htcacheclean rotatelogs \$(NONPORTABLE_SUPPORT)
+ TARGETS  = \$(bin_PROGRAMS) \$(sbin_PROGRAMS)
  
 EOF
 	LDFLAGS="-Wl,-rpath,${INSTALL_ROOT}/${SSL_LIB}/lib" \
