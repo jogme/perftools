@@ -703,7 +703,7 @@ function setup_tests {
 	clean_build
 
 	install_boringssl
-	install_apache boringssl
+	install_apache_boring boringssl
 	config_apache boringssl
 	cd "${WORKSPACE_ROOT}"
 	clean_build
