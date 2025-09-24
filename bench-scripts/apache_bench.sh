@@ -203,9 +203,9 @@ function install_apache_boring {
 	#
 	cd "${BUILD_DIR}"
 cat <<EOF | patch -p0 || exit 1
-diff -r -u old/modules/ssl/ssl_engine_config.c new/modules/ssl/ssl_engine_config.c
+diff -r -u modules/ssl/ssl_engine_config.c modules/ssl/ssl_engine_config.c
 --- modules/ssl/ssl_engine_config.c	2025-07-07 12:09:30.000000000 +0000
-+++ modules/ssl/ssl_engine_config.c	2025-09-24 09:12:21.789700366 +0000
++++ modules/ssl/ssl_engine_config.c	2025-09-24 09:20:04.708765726 +0000
 @@ -1779,10 +1779,8 @@
      SSLSrvConfigRec *sc = mySrvConfig(cmd->server);
  
@@ -217,9 +217,180 @@ diff -r -u old/modules/ssl/ssl_engine_config.c new/modules/ssl/ssl_engine_config
  #endif
  
      return ssl_cmd_ocspcheck_parse(cmd, arg, &sc->server->ocsp_mask);
-diff -r -u old/modules/ssl/ssl_private.h new/modules/ssl/ssl_private.h
+diff -r -u modules/ssl/ssl_engine_init.c modules/ssl/ssl_engine_init.c
+--- modules/ssl/ssl_engine_init.c	2025-07-07 12:09:30.000000000 +0000
++++ modules/ssl/ssl_engine_init.c	2025-09-24 11:02:09.506314057 +0000
+@@ -1054,15 +1054,6 @@
+         ssl_log_ssl_error(SSLLOG_MARK, APLOG_EMERG, s);
+         return ssl_die(s);
+     }
+-#if SSL_HAVE_PROTOCOL_TLSV1_3
+-    if (mctx->auth.tls13_ciphers 
+-        && !SSL_CTX_set_ciphersuites(ctx, mctx->auth.tls13_ciphers)) {
+-        ap_log_error(APLOG_MARK, APLOG_EMERG, 0, s, APLOGNO(10127)
+-                "Unable to configure permitted TLSv1.3 ciphers");
+-        ssl_log_ssl_error(SSLLOG_MARK, APLOG_EMERG, s);
+-        return ssl_die(s);
+-    }
+-#endif
+     return APR_SUCCESS;
+ }
+ 
+@@ -1358,7 +1349,7 @@
+  * off the OpenSSL stack and evaluates to true only for the first
+  * case.  With OpenSSL < 3 the second case is identifiable by the
+  * function code, but function codes are not used from 3.0. */
+-#if OPENSSL_VERSION_NUMBER < 0x30000000L
++#if OPENSSL_VERSION_NUMBER < 0x30000000L && !defined(BORINGSSL_API_VERSION)
+ #define CHECK_PRIVKEY_ERROR(ec) (ERR_GET_FUNC(ec) != X509_F_X509_CHECK_PRIVATE_KEY)
+ #else
+ #define CHECK_PRIVKEY_ERROR(ec) (ERR_GET_LIB(ec) != ERR_LIB_X509            \
+@@ -1580,7 +1571,7 @@
+                          num_bits, vhost_id, certfile);
+         }
+     }
+-#if !MODSSL_USE_OPENSSL_PRE_1_1_API
++#if !MODSSL_USE_OPENSSL_PRE_1_1_API && !defined(BORINGSSL_API_VERSION)
+     if (!custom_dh_done) {
+         /* If no parameter is manually configured, enable auto
+          * selection. */
+@@ -1751,7 +1742,7 @@
+ 
+     ap_assert(store != NULL); /* safe to assume always non-NULL? */
+ 
+-#if OPENSSL_VERSION_NUMBER >= 0x1010100fL && !defined(LIBRESSL_VERSION_NUMBER)
++#if OPENSSL_VERSION_NUMBER >= 0x1010100fL && !defined(LIBRESSL_VERSION_NUMBER) && !defined(BORINGSSL_API_VERSION)
+     /* For OpenSSL >=1.1.1, turn on client cert support which is
+      * otherwise turned off by default (by design).
+      * https://github.com/openssl/openssl/issues/6933 */
+diff -r -u modules/ssl/ssl_engine_io.c modules/ssl/ssl_engine_io.c
+--- modules/ssl/ssl_engine_io.c	2024-07-04 15:58:17.000000000 +0000
++++ modules/ssl/ssl_engine_io.c	2025-09-24 11:14:15.746845263 +0000
+@@ -234,7 +234,7 @@
+      * be expensive in cases where requests/responses are pipelined,
+      * so limit the performance impact to handshake time.
+      */
+-#if OPENSSL_VERSION_NUMBER < 0x0009080df
++#if OPENSSL_VERSION_NUMBER < 0x0009080df || defined(BORINGSSL_API_VERSION)
+      need_flush = !SSL_is_init_finished(outctx->filter_ctx->pssl);
+ #else
+      need_flush = SSL_in_connect_init(outctx->filter_ctx->pssl);
+@@ -2368,6 +2368,7 @@
+             "+-------------------------------------------------------------------------+");
+ }
+ 
++#ifndef BORINGSSL_API_VERSION
+ #define MODSSL_IO_DUMP_MAX APR_UINT16_MAX
+ 
+ #if OPENSSL_VERSION_NUMBER >= 0x30000000L
+@@ -2482,3 +2483,4 @@
+         set_bio_callback(wbio, ssl);
+     }
+ }
++#endif
+diff -r -u modules/ssl/ssl_engine_kernel.c modules/ssl/ssl_engine_kernel.c
+--- modules/ssl/ssl_engine_kernel.c	2025-07-07 12:09:30.000000000 +0000
++++ modules/ssl/ssl_engine_kernel.c	2025-09-24 11:27:50.268230807 +0000
+@@ -459,6 +459,7 @@
+     const SSL_CIPHER *cipher = NULL;
+     int depth, verify_old, verify, n, rc;
+     const char *ncipher_suite;
++    size_t index;
+ 
+ #ifdef HAVE_SRP
+     /*
+@@ -570,7 +571,7 @@
+                 renegotiate = TRUE;
+             }
+             else if (cipher && cipher_list &&
+-                     (sk_SSL_CIPHER_find(cipher_list, cipher) < 0))
++                     (sk_SSL_CIPHER_find(cipher_list, &index, cipher) < 0))
+             {
+                 renegotiate = TRUE;
+             }
+@@ -589,7 +590,7 @@
+                 {
+                     const SSL_CIPHER *value = sk_SSL_CIPHER_value(cipher_list, n);
+ 
+-                    if (sk_SSL_CIPHER_find(cipher_list_old, value) < 0) {
++                    if (sk_SSL_CIPHER_find(cipher_list_old, &index, value) < 0) {
+                         renegotiate = TRUE;
+                     }
+                 }
+@@ -600,7 +601,7 @@
+                 {
+                     const SSL_CIPHER *value = sk_SSL_CIPHER_value(cipher_list_old, n);
+ 
+-                    if (sk_SSL_CIPHER_find(cipher_list, value) < 0) {
++                    if (sk_SSL_CIPHER_find(cipher_list, &index, value) < 0) {
+                         renegotiate = TRUE;
+                     }
+                 }
+@@ -672,7 +673,9 @@
+          *       are any changes required.
+          */
+         SSL_set_verify(ssl, verify, ssl_callback_SSLVerify);
++#ifndef BORINGSSL_API_VERSION
+         SSL_set_verify_result(ssl, X509_V_OK);
++#endif
+ 
+         /* determine whether we've to force a renegotiation */
+         if (!renegotiate && verify != verify_old) {
+@@ -868,8 +871,9 @@
+                               "Re-negotiation verification step failed");
+                 ssl_log_ssl_error(SSLLOG_MARK, APLOG_ERR, r->server);
+             }
+-
++#ifndef BORINGSSL_API_VERSION
+             SSL_set_verify_result(ssl, X509_STORE_CTX_get_error(cert_store_ctx));
++#endif
+             X509_STORE_CTX_cleanup(cert_store_ctx);
+             X509_STORE_CTX_free(cert_store_ctx);
+ 
+@@ -974,7 +978,7 @@
+          */
+         if (cipher_list) {
+             cipher = SSL_get_current_cipher(ssl);
+-            if (sk_SSL_CIPHER_find(cipher_list, cipher) < 0) {
++            if (sk_SSL_CIPHER_find(cipher_list, &index, cipher) < 0) {
+                 ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(02264)
+                              "SSL cipher suite not renegotiated: "
+                              "access to %s denied using cipher %s",
+@@ -1096,6 +1100,7 @@
+ 
+             SSL_set_verify(ssl, vmode_needed, ssl_callback_SSLVerify);
+ 
++#ifndef BORINGSSL_API_VERSION
+             if (SSL_verify_client_post_handshake(ssl) != 1) {
+                 ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(10158)
+                               "cannot perform post-handshake authentication");
+@@ -1105,6 +1110,7 @@
+                 SSL_set_verify(ssl, vmode_inplace, NULL);
+                 return HTTP_FORBIDDEN;
+             }
++#endif
+             
+             modssl_set_app_data2(ssl, r);
+ 
+diff -r -u modules/ssl/ssl_engine_pphrase.c modules/ssl/ssl_engine_pphrase.c
+--- modules/ssl/ssl_engine_pphrase.c	2024-11-25 13:37:20.000000000 +0000
++++ modules/ssl/ssl_engine_pphrase.c	2025-09-24 11:42:47.504495649 +0000
+@@ -30,7 +30,12 @@
+                                            -- Clifford Stoll     */
+ #include "ssl_private.h"
+ 
++#ifdef BORINGSSL_API_VERSION
++#define PEMerr(...) (void)(0)
++#define EVP_read_pw_string(...) 1
++#else
+ #include <openssl/ui.h>
++#endif
+ #if MODSSL_HAVE_OPENSSL_STORE
+ #include <openssl/store.h>
+ #endif
+diff -r -u modules/ssl/ssl_private.h modules/ssl/ssl_private.h
 --- modules/ssl/ssl_private.h	2025-07-07 12:09:30.000000000 +0000
-+++ modules/ssl/ssl_private.h	2025-09-24 09:11:54.736048910 +0000
++++ modules/ssl/ssl_private.h	2025-09-24 09:20:04.708765726 +0000
 @@ -98,7 +98,10 @@
  #include <openssl/rand.h>
  #include <openssl/x509v3.h>
@@ -231,9 +402,9 @@ diff -r -u old/modules/ssl/ssl_private.h new/modules/ssl/ssl_private.h
  #include <openssl/dh.h>
  #if OPENSSL_VERSION_NUMBER >= 0x30000000
  #include <openssl/core_names.h>
-diff -r -u old/support/Makefile.in new/support/Makefile.in
---- support/Makefile.in	2018-02-09 10:17:30.000000000 +0000
-+++ support/Makefile.in	2025-09-24 09:06:01.612628172 +0000
+diff -r -u /tmp/httpd-2.4.65/support/Makefile.in httpd-2.4.65/support/Makefile.in
+--- /tmp/httpd-2.4.65/support/Makefile.in	2018-02-09 10:17:30.000000000 +0000
++++ httpd-2.4.65/support/Makefile.in	2025-09-24 09:20:04.708765726 +0000
 @@ -3,7 +3,7 @@
  
  CLEAN_TARGETS = suexec
@@ -251,7 +422,7 @@ EOF
 		--enable-ssl \
 		--with-included-apr \
 		--enable-mpms-shared=all \
-		--with-ssl="${INSTALL_ROOT}/${SSL_LIB}/lib" || exit 1
+		--with-ssl="${INSTALL_ROOT}/${SSL_LIB}" || exit 1
 	make ${MAKE_OPTS} || exit 1
 	make ${MAKE_OPTS} install || exit 1
 }
