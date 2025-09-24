@@ -203,8 +203,37 @@ function install_apache_boring {
 	#
 	cd "${BUILD_DIR}"
 cat <<EOF | patch -p0 || exit 1
+diff -r -u old/modules/ssl/ssl_engine_config.c new/modules/ssl/ssl_engine_config.c
+--- modules/ssl/ssl_engine_config.c	2025-07-07 12:09:30.000000000 +0000
++++ modules/ssl/ssl_engine_config.c	2025-09-24 09:12:21.789700366 +0000
+@@ -1779,10 +1779,8 @@
+     SSLSrvConfigRec *sc = mySrvConfig(cmd->server);
+ 
+ #ifdef OPENSSL_NO_OCSP
+-    if (flag) {
+         return "OCSP support disabled in SSL library; cannot enable "
+             "OCSP validation";
+-    }
+ #endif
+ 
+     return ssl_cmd_ocspcheck_parse(cmd, arg, &sc->server->ocsp_mask);
+diff -r -u old/modules/ssl/ssl_private.h new/modules/ssl/ssl_private.h
+--- modules/ssl/ssl_private.h	2025-07-07 12:09:30.000000000 +0000
++++ modules/ssl/ssl_private.h	2025-09-24 09:11:54.736048910 +0000
+@@ -98,7 +98,10 @@
+ #include <openssl/rand.h>
+ #include <openssl/x509v3.h>
+ #include <openssl/x509_vfy.h>
++#include <openssl/ssl.h>
++#ifndef OPENSSL_NO_OCSP
+ #include <openssl/ocsp.h>
++#endif
+ #include <openssl/dh.h>
+ #if OPENSSL_VERSION_NUMBER >= 0x30000000
+ #include <openssl/core_names.h>
+diff -r -u old/support/Makefile.in new/support/Makefile.in
 --- support/Makefile.in	2018-02-09 10:17:30.000000000 +0000
-+++ support/Makefile.in	2025-09-24 07:54:07.291492617 +0000
++++ support/Makefile.in	2025-09-24 09:06:01.612628172 +0000
 @@ -3,7 +3,7 @@
  
  CLEAN_TARGETS = suexec
@@ -216,7 +245,7 @@ cat <<EOF | patch -p0 || exit 1
  
 EOF
 	LDFLAGS="-Wl,-rpath,${INSTALL_ROOT}/${SSL_LIB}/lib" \
-	    CFLAGS="-I${INSTALL_ROOT}/${SSL_LIB}/include" \
+	    CFLAGS="-DOPENSSL_NO_TLSEXT -I${INSTALL_ROOT}/${SSL_LIB}/include" \
 	    ./configure --prefix="${INSTALL_ROOT}/${SSL_LIB}" \
 		--enable-info \
 		--enable-ssl \
