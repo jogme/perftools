@@ -202,7 +202,7 @@ function install_boringssl {
 	# the make install does not make .so module executable
 	#
 	chmod +x ${INSTALL_ROOT}/${BORING_NAME}/lib/libcrypto.so || exit 1
-	chmod +x ${INSTALL_ROOT}/${BORING_NAME}lib/libssl.so || exit 1
+	chmod +x ${INSTALL_ROOT}/${BORING_NAME}/lib/libssl.so || exit 1
 	cd "${WORKSPACE_ROOT}"
 }
 
