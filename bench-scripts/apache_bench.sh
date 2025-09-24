@@ -99,9 +99,11 @@ function install_wolfssl_for_apache {
 
 	AUTOCONF_VERSION=2.72 AUTOMAKE_VERSION=1.16 ./autogen.sh || exit 1
 
-	LDFLAGS="-Wl,-rpath,${INSTALL_ROOT}/${SSL_LIB}/lib" ./configure --prefix="${INSTALL_ROOT}/${DIRNAME}" \
-	    --enable-apachehttpd  \
-	    --enable-postauth || exit 1
+	LDFLAGS="-Wl,-rpath,${INSTALL_ROOT}/${SSL_LIB}/lib" \
+	    CFLAGS="-DOPENSSL_NO_TLSEXT -I${INSTALL_ROOT}/${SSL_LIB}/include" \
+	    ./configure --prefix="${INSTALL_ROOT}/${DIRNAME}" \
+		--enable-apachehttpd  \
+		--enable-postauth || exit 1
 
 	make ${MAKE_OPTS} || exit 1
 	make ${MAKE_OPTS} install || exit 1
@@ -164,7 +166,9 @@ function install_apache {
 	tar xjf "${DOWNLOAD_FILE}" || exit 1
 	bundle_apr "${WORKSPACE_ROOT}/${BUILD_DIR}/srclib"
 	cd "${BUILD_DIR}"
-	LDFLAGS="-Wl,-rpath,${INSTALL_ROOT}/${SSL_LIB}/lib" ./configure --prefix="${INSTALL_ROOT}/${SSL_LIB}" \
+	LDFLAGS="-Wl,-rpath,${INSTALL_ROOT}/${SSL_LIB}/lib" \
+	    CFLAGS="-I${INSTALL_ROOT}/${SSL_LIB}/include" \
+	    ./configure --prefix="${INSTALL_ROOT}/${SSL_LIB}" \
 		--enable-info \
 		--enable-ssl \
 		--disable-ab \
@@ -239,7 +243,9 @@ cat <<EOF | patch -p0 || exit 1
       * otherwise turned off by default (by design).
       * https://github.com/openssl/openssl/issues/6933 */
 EOF
-	CFLAGS='-DOPENSSL_NO_TLSEXT' LDFLAGS="-Wl,-rpath,${INSTALL_ROOT}/${SSL_LIB}/lib" ./configure --prefix="${INSTALL_ROOT}/${SSL_LIB}" \
+	CFLAGS="-DOPENSSL_NO_TLSEXT -I${INSTALL_ROOT}/${SSL_LIB}/include" \
+	    LDFLAGS="-Wl,-rpath,${INSTALL_ROOT}/${SSL_LIB}/lib" \
+	    ./configure --prefix="${INSTALL_ROOT}/${SSL_LIB}" \
 		--enable-info \
 		--enable-ssl \
 		--disable-ab \
