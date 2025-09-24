@@ -170,7 +170,7 @@ function install_apache {
 		--disable-ab \
 		--with-included-apr \
 		--enable-mpms-shared=all \
-		--with-ssl="${INSTALL_ROOT}/${SSL_LIB}" || exit 1
+		--with-ssl="${INSTALL_ROOT}/${SSL_LIB}/lib" || exit 1
 	make ${MAKE_OPTS} || exit 1
 	make ${MAKE_OPTS} install || exit 1
 }
@@ -245,7 +245,7 @@ EOF
 		--disable-ab \
 		--with-included-apr \
 		--enable-mpms-shared=all \
-		--with-ssl="${INSTALL_ROOT}/${SSL_LIB}" || exit 1
+		--with-ssl="${INSTALL_ROOT}/${SSL_LIB}/lib" || exit 1
 	make ${MAKE_OPTS} || exit 1
 	make ${MAKE_OPTS} install || exit 1
 }
