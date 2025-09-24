@@ -402,9 +402,9 @@ diff -r -u modules/ssl/ssl_private.h modules/ssl/ssl_private.h
  #include <openssl/dh.h>
  #if OPENSSL_VERSION_NUMBER >= 0x30000000
  #include <openssl/core_names.h>
-diff -r -u /tmp/httpd-2.4.65/support/Makefile.in httpd-2.4.65/support/Makefile.in
---- /tmp/httpd-2.4.65/support/Makefile.in	2018-02-09 10:17:30.000000000 +0000
-+++ httpd-2.4.65/support/Makefile.in	2025-09-24 09:20:04.708765726 +0000
+diff -r -u support/Makefile.in support/Makefile.in
+--- support/Makefile.in	2018-02-09 10:17:30.000000000 +0000
++++ support/Makefile.in	2025-09-24 09:20:04.708765726 +0000
 @@ -3,7 +3,7 @@
  
  CLEAN_TARGETS = suexec
