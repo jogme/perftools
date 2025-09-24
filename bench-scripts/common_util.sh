@@ -198,6 +198,15 @@ function install_boringssl {
 	cd build || exit 1
 	make ${MAKE_OPTS} || exit 1
 	make ${MAKE_OPTS} install || exit 1
+	#
+	# the make install does not make .so module executable
+	# we also need to create symlinks as apache seems to
+	# expect to find libcrypto.so.3 and libssl.so.3
+	#
+	chmod +x ${INSTALL_ROOT}/lib/libcrypto.so || exit 1
+	ln -s ${INSTALL_ROOT}/lib/libcrypto.so ${INSTALL_ROOT}/lib/libcrypto.so.3 || exit 1
+	chmod +x ${INSTALL_ROOT}/lib/libssl.so || exit 1
+	ln -s ${INSTALL_ROOT}/lib/libssl.so ${INSTALL_ROOT}/lib/libssl.so.3 || exit 1
 	cd "${WORKSPACE_ROOT}"
 }
 
