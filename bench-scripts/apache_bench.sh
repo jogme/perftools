@@ -171,7 +171,55 @@ function install_apache {
 	    ./configure --prefix="${INSTALL_ROOT}/${SSL_LIB}" \
 		--enable-info \
 		--enable-ssl \
-		--disable-ab \
+		--with-included-apr \
+		--enable-mpms-shared=all \
+		--with-ssl="${INSTALL_ROOT}/${SSL_LIB}/lib" || exit 1
+	make ${MAKE_OPTS} || exit 1
+	make ${MAKE_OPTS} install || exit 1
+}
+
+function install_apache_boring {
+	typeset VERSION=${APACHE_VERSION:-2.4.65}
+	typeset SUFFIX='tar.bz2'
+	typeset BASENAME='httpd'
+	typeset DOWNLOAD_FILE="${BASENAME}-${VERSION}.${SUFFIX}"
+	typeset BUILD_DIR="${BASENAME}-${VERSION}"
+	typeset DOWNLOAD_URL="https://archive.apache.org/dist/${BASENAME}"
+	typeset DOWNLOAD_LINK="${DOWNLOAD_URL}/${DOWNLOAD_FILE}"
+	typeset SSL_LIB=$1
+
+	if [[ -z "${SSL_LIB}" ]] ; then
+		SSL_LIB='openssl-master'
+	fi
+
+	cd "$WORKSPACE_ROOT"
+	if [[ ! -f "${DOWNLOAD_FILE}" ]] ; then
+		wget -O "$DOWNLOAD_FILE" "$DOWNLOAD_LINK" || exit 1
+	fi
+	tar xjf "${DOWNLOAD_FILE}" || exit 1
+	bundle_apr "${WORKSPACE_ROOT}/${BUILD_DIR}/srclib"
+	#
+	# do not byild apache benchmark when building with boringssl
+	#
+	cd "${BUILD_DIR}"
+cat <<EOF | patch -p0 || exit 1
+--- support/Makefile.in	2018-02-09 10:17:30.000000000 +0000
++++ support/Makefile.in.new	2025-09-24 07:54:07.291492617 +0000
+@@ -3,7 +3,7 @@
+ 
+ CLEAN_TARGETS = suexec
+ 
+-bin_PROGRAMS = htpasswd htdigest htdbm ab logresolve httxt2dbm
++bin_PROGRAMS = htpasswd htdigest htdbm logresolve httxt2dbm
+ sbin_PROGRAMS = htcacheclean rotatelogs $(NONPORTABLE_SUPPORT)
+ TARGETS  = $(bin_PROGRAMS) $(sbin_PROGRAMS)
+ 
+EOF
+	LDFLAGS="-Wl,-rpath,${INSTALL_ROOT}/${SSL_LIB}/lib" \
+	    CFLAGS="-I${INSTALL_ROOT}/${SSL_LIB}/include" \
+	    ./configure --prefix="${INSTALL_ROOT}/${SSL_LIB}" \
+		--enable-info \
+		--enable-ssl \
 		--with-included-apr \
 		--enable-mpms-shared=all \
 		--with-ssl="${INSTALL_ROOT}/${SSL_LIB}/lib" || exit 1
@@ -248,7 +296,6 @@ EOF
 	    ./configure --prefix="${INSTALL_ROOT}/${SSL_LIB}" \
 		--enable-info \
 		--enable-ssl \
-		--disable-ab \
 		--with-included-apr \
 		--enable-mpms-shared=all \
 		--with-ssl="${INSTALL_ROOT}/${SSL_LIB}/lib" || exit 1
@@ -366,7 +413,6 @@ function install_wolf_apache {
 	./configure --prefix="${INSTALL_ROOT}/${SSL_LIB}" \
 		--enable-info \
 		--enable-ssl \
-		--disable-ab \
 		--with-included-apr \
 		--with-pcre="${INSTALL_ROOT}/${SSL_LIB}" \
 		--with-wolfssl="${INSTALL_ROOT}/${SSL_LIB}"\
