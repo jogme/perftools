@@ -414,6 +414,19 @@ diff -r -u support/Makefile.in support/Makefile.in
  sbin_PROGRAMS = htcacheclean rotatelogs \$(NONPORTABLE_SUPPORT)
  TARGETS  = \$(bin_PROGRAMS) \$(sbin_PROGRAMS)
  
+diff -r -u modules/ssl/mod_ssl.c modules/ssl/mod_ssl.c
+--- modules/ssl/mod_ssl.c	2025-09-25 13:09:29.781928394 +0000
++++ modules/ssl/mod_ssl.c	2025-09-25 13:09:24.792950635 +0000
+@@ -636,7 +636,9 @@
+     SSL_set_app_data(ssl, c);
+     modssl_set_app_data2(ssl, NULL); /* will be request_rec */
+ 
++#ifndef BORINGSSL_API_VERSION
+     SSL_set_verify_result(ssl, X509_V_OK);
++#endif
+ 
+     ssl_io_filter_init(c, r, ssl);
+ 
 EOF
 	LDFLAGS="-Wl,-rpath,${INSTALL_ROOT}/${SSL_LIB}/lib -L${INSTALL_ROOT}/${SSL_LIB}/lib -ldecrepit" \
 	    CFLAGS="-DOPENSSL_NO_TLSEXT -I${INSTALL_ROOT}/${SSL_LIB}/include" \
