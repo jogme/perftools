@@ -205,7 +205,7 @@ function install_apache_boring {
 cat <<EOF | patch -p0 || exit 1
 diff -r -u modules/ssl/mod_ssl.c modules/ssl/mod_ssl.c
 --- modules/ssl/mod_ssl.c	2023-11-18 11:34:12.000000000 +0000
-+++ modules/ssl/mod_ssl.c	2025-09-25 13:24:21.560451977 +0000
++++ modules/ssl/mod_ssl.c	2025-09-25 13:35:31.340381199 +0000
 @@ -636,7 +636,9 @@
      SSL_set_app_data(ssl, c);
      modssl_set_app_data2(ssl, NULL); /* will be request_rec */
@@ -218,7 +218,7 @@ diff -r -u modules/ssl/mod_ssl.c modules/ssl/mod_ssl.c
  
 diff -r -u modules/ssl/ssl_engine_config.c modules/ssl/ssl_engine_config.c
 --- modules/ssl/ssl_engine_config.c	2025-07-07 12:09:30.000000000 +0000
-+++ modules/ssl/ssl_engine_config.c	2025-09-25 13:24:21.558678331 +0000
++++ modules/ssl/ssl_engine_config.c	2025-09-25 13:35:31.340695805 +0000
 @@ -1779,10 +1779,8 @@
      SSLSrvConfigRec *sc = mySrvConfig(cmd->server);
  
@@ -232,7 +232,7 @@ diff -r -u modules/ssl/ssl_engine_config.c modules/ssl/ssl_engine_config.c
      return ssl_cmd_ocspcheck_parse(cmd, arg, &sc->server->ocsp_mask);
 diff -r -u modules/ssl/ssl_engine_init.c modules/ssl/ssl_engine_init.c
 --- modules/ssl/ssl_engine_init.c	2025-07-07 12:09:30.000000000 +0000
-+++ modules/ssl/ssl_engine_init.c	2025-09-25 13:27:36.487091460 +0000
++++ modules/ssl/ssl_engine_init.c	2025-09-25 13:35:31.341000063 +0000
 @@ -1054,15 +1054,6 @@
          ssl_log_ssl_error(SSLLOG_MARK, APLOG_EMERG, s);
          return ssl_die(s);
@@ -257,7 +257,7 @@ diff -r -u modules/ssl/ssl_engine_init.c modules/ssl/ssl_engine_init.c
 +#if OPENSSL_VERSION_NUMBER < 0x30000000L && !defined(BORINGSSL_API_VERSION)
  #define CHECK_PRIVKEY_ERROR(ec) (ERR_GET_FUNC(ec) != X509_F_X509_CHECK_PRIVATE_KEY)
  #else
- #define CHECK_PRIVKEY_ERROR(ec) (ERR_GET_LIB(ec) != ERR_LIB_X509            \\
+ #define CHECK_PRIVKEY_ERROR(ec) (ERR_GET_LIB(ec) != ERR_LIB_X509            \'
 @@ -1580,7 +1571,7 @@
                           num_bits, vhost_id, certfile);
          }
@@ -278,7 +278,7 @@ diff -r -u modules/ssl/ssl_engine_init.c modules/ssl/ssl_engine_init.c
       * https://github.com/openssl/openssl/issues/6933 */
 diff -r -u modules/ssl/ssl_engine_io.c modules/ssl/ssl_engine_io.c
 --- modules/ssl/ssl_engine_io.c	2024-07-04 15:58:17.000000000 +0000
-+++ modules/ssl/ssl_engine_io.c	2025-09-25 13:24:21.559384370 +0000
++++ modules/ssl/ssl_engine_io.c	2025-09-25 13:48:43.064886685 +0000
 @@ -234,7 +234,7 @@
       * be expensive in cases where requests/responses are pipelined,
       * so limit the performance impact to handshake time.
@@ -288,22 +288,38 @@ diff -r -u modules/ssl/ssl_engine_io.c modules/ssl/ssl_engine_io.c
       need_flush = !SSL_is_init_finished(outctx->filter_ctx->pssl);
  #else
       need_flush = SSL_in_connect_init(outctx->filter_ctx->pssl);
-@@ -2368,6 +2368,7 @@
-             "+-------------------------------------------------------------------------+");
- }
- 
+@@ -2379,6 +2379,7 @@
+                          int argi, long argl, long rc)
+ #endif
+ {
 +#ifndef BORINGSSL_API_VERSION
- #define MODSSL_IO_DUMP_MAX APR_UINT16_MAX
- 
- #if OPENSSL_VERSION_NUMBER >= 0x30000000L
-@@ -2482,3 +2483,4 @@
-         set_bio_callback(wbio, ssl);
+     SSL *ssl;
+     conn_rec *c;
+     server_rec *s;
+@@ -2453,17 +2454,20 @@
+                     bio, argp);
+         }
      }
- }
 +#endif
-diff -r -modules/ssl/ssl_engine_kernel.c modules/ssl/ssl_engine_kernel.c
+     return rc;
+ }
+ 
+ static APR_INLINE void set_bio_callback(BIO *bio, void *arg)
+ {
++#ifndef BORINGSSL_API_VERSION
+ #if OPENSSL_VERSION_NUMBER >= 0x30000000L
+     BIO_set_callback_ex(bio, modssl_io_cb);
+ #else
+     BIO_set_callback(bio, modssl_io_cb);
+ #endif
+     BIO_set_callback_arg(bio, arg);
++#endif
+ }
+ 
+ void modssl_set_io_callbacks(SSL *ssl, conn_rec *c, server_rec *s)
+diff -r -u modules/ssl/ssl_engine_kernel.c modules/ssl/ssl_engine_kernel.c
 --- modules/ssl/ssl_engine_kernel.c	2025-07-07 12:09:30.000000000 +0000
-+++ modules/ssl/ssl_engine_kernel.c	2025-09-25 13:24:21.559718739 +0000
++++ modules/ssl/ssl_engine_kernel.c	2025-09-25 13:35:31.341661132 +0000
 @@ -459,6 +459,7 @@
      const SSL_CIPHER *cipher = NULL;
      int depth, verify_old, verify, n, rc;
@@ -387,7 +403,7 @@ diff -r -modules/ssl/ssl_engine_kernel.c modules/ssl/ssl_engine_kernel.c
  
 diff -r -u modules/ssl/ssl_engine_pphrase.c modules/ssl/ssl_engine_pphrase.c
 --- modules/ssl/ssl_engine_pphrase.c	2024-11-25 13:37:20.000000000 +0000
-+++ modules/ssl/ssl_engine_pphrase.c	2025-09-25 13:24:21.560010919 +0000
++++ modules/ssl/ssl_engine_pphrase.c	2025-09-25 13:35:31.341966771 +0000
 @@ -30,7 +30,12 @@
                                             -- Clifford Stoll     */
  #include "ssl_private.h"
@@ -403,7 +419,7 @@ diff -r -u modules/ssl/ssl_engine_pphrase.c modules/ssl/ssl_engine_pphrase.c
  #endif
 diff -r -u modules/ssl/ssl_private.h modules/ssl/ssl_private.h
 --- modules/ssl/ssl_private.h	2025-07-07 12:09:30.000000000 +0000
-+++ modules/ssl/ssl_private.h	2025-09-25 13:24:21.560187572 +0000
++++ modules/ssl/ssl_private.h	2025-09-25 13:35:31.342140649 +0000
 @@ -98,7 +98,10 @@
  #include <openssl/rand.h>
  #include <openssl/x509v3.h>
@@ -417,7 +433,7 @@ diff -r -u modules/ssl/ssl_private.h modules/ssl/ssl_private.h
  #include <openssl/core_names.h>
 diff -r -u support/Makefile.in support/Makefile.in
 --- support/Makefile.in	2018-02-09 10:17:30.000000000 +0000
-+++ support/Makefile.in	2025-09-25 13:24:21.560329726 +0000
++++ support/Makefile.in	2025-09-25 13:35:31.342293168 +0000
 @@ -3,7 +3,7 @@
  
  CLEAN_TARGETS = suexec
