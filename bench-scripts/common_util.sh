@@ -243,7 +243,7 @@ function install_siege {
 	tar xzf "${DOWNLOAD_FILE}"
 	cd ${BUILD_DIR}
 	./configure --prefix="${INSTALL_ROOT}/${SSL_LIB}" \
-		--with-ssl=${SSL_LIB}
+	    --with-ssl="${INSTALL_ROOT}/${SSL_LIB}"
 	make ${MAKE_OPTS} || exit 1
 	make ${MAKE_OPTS} install || exit 1
 }
