@@ -192,6 +192,24 @@ function install_boringssl {
 	mkdir -p "${BORING_NAME}"
 	cd "${BORING_NAME}"
 	git clone "${BORING_REPO}" --depth 1 . || exit 1
+	#
+	# we need to install libdecrepit.so so mod_ssl can use
+	# base64 BIO file stream
+	#
+cat <<EOF | patch -p0 || exit 1
+diff -r -u CMakeLists.txt CMakeLists.txt
+--- CMakeLists.txt	2025-09-25 11:20:59.115589075 +0000
++++ CMakeLists.txt	2025-09-25 11:40:45.054887797 +0000
+@@ -795,7 +795,7 @@
+ endif()
+ 
+ if(INSTALL_ENABLED)
+-  install(TARGETS crypto ssl EXPORT OpenSSLTargets)
++  install(TARGETS crypto ssl decrepit EXPORT OpenSSLTargets)
+   install(TARGETS bssl)
+   install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+   install(EXPORT OpenSSLTargets
+EOF
 	cmake -B build -DCMAKE_INSTALL_PREFIX="${INSTALL_ROOT}/${BORING_NAME}" \
 	    -DBUILD_SHARED_LIBS=1 \
 	    -DCMAKE_BUILD_TYPE=Release || exit 1
@@ -203,6 +221,7 @@ function install_boringssl {
 	#
 	chmod +x ${INSTALL_ROOT}/${BORING_NAME}/lib/libcrypto.so || exit 1
 	chmod +x ${INSTALL_ROOT}/${BORING_NAME}/lib/libssl.so || exit 1
+	chmod +x ${INSTALL_ROOT}/${BORING_NAME}/lib/libdecrepit.so || exit 1
 	cd "${WORKSPACE_ROOT}"
 }
 
