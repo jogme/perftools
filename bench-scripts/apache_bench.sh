@@ -415,7 +415,7 @@ diff -r -u support/Makefile.in support/Makefile.in
  TARGETS  = \$(bin_PROGRAMS) \$(sbin_PROGRAMS)
  
 EOF
-	LDFLAGS="-Wl,-rpath,${INSTALL_ROOT}/${SSL_LIB}/lib" \
+	LDFLAGS="-Wl,-rpath,${INSTALL_ROOT}/${SSL_LIB}/lib -L${INSTALL_ROOT}/${SSL_LIB}/lib -ldecrepit" \
 	    CFLAGS="-DOPENSSL_NO_TLSEXT -I${INSTALL_ROOT}/${SSL_LIB}/include" \
 	    ./configure --prefix="${INSTALL_ROOT}/${SSL_LIB}" \
 		--enable-info \
