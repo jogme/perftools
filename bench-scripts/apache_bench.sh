@@ -970,36 +970,54 @@ function run_tests {
 	RESULT_DIR="${SAVE_RESULT_DIR}/event"
 	run_test nossl
 	for i in 3.0 3.1 3.2 3.3 3.4 3.5 3.6 ; do
+		enable_mpm_event openssl-${i}
 		run_test openssl-${i}
 	done
+	enable_mpm_event openssl-master
 	run_test openssl-master
+	enable_mpm_event libressl-4.1.0
 	run_test libressl-4.1.0
+	#enable_mpm_event wolfssl-5.8.2
 	#run_test wolfssl-5.8.2
+	enable_mpm_event boringssl
 	run_test boringssl
+	enable_mpm_event aws-lc
 	run_test aws-lc
 
 	enable_mpm_worker
 	RESULT_DIR="${SAVE_RESULT_DIR}/worker"
 	run_test nossl
 	for i in 3.0 3.1 3.2 3.3 3.4 3.5 3.6 ; do
+		enable_mpm_worker openssl-${i}
 		run_test openssl-${i}
 	done
+	enable_mpm_worker openssl-master
 	run_test openssl-master
+	enable_mpm_worker libressl-4.1.0
 	run_test libressl-4.1.0
+	#enable_mpm_worker wolfssl-5.8.2
 	#run_test wolfssl-5.8.2
+	enable_mpm_worker boringssl
 	run_test boringssl
+	enable_mpm_worker aws-lc
 	run_test aws-lc
 
 	enable_mpm_prefork
 	RESULT_DIR="${SAVE_RESULT_DIR}/pre-fork"
 	run_test nossl
 	for i in 3.0 3.1 3.2 3.3 3.4 3.5 3.6 ; do
+		enable_mpm_prefork openssl-${i}
 		run_test openssl-${i}
 	done
+	enable_mpm_prefork openssl-master
 	run_test openssl-master
+	enable_mpm_prefork libressl-4.1.0
 	run_test libressl-4.1.0
+	#enable_mpm_prefork wolfssl-5.8.2
 	#run_test wolfssl-5.8.2
+	enable_mpm_prefork boringssl
 	run_test boringssl
+	enable_mpm_prefork aws-lc
 	run_test aws-lc
 
 	RESULT_DIR=${SAVE_RESULT_DIR}
