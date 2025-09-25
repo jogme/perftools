@@ -818,15 +818,30 @@ function run_test {
 	#
 	# start apache httpd server
 	#
-	"${INSTALL_ROOT}/${SSL_LIB}/bin/httpd"
+	LD_LIBRARY_PATH=${INSTALL_ROOT}/${SSL_LIB}/lib \
+	    ${INSTALL_ROOT}/${SSL_LIB}/bin/httpd -k start || exit 1
 	if [[ $? -ne 0 ]] ; then
 		echo "could not start ${INSTALL_ROOT}/${SSL_LIB}/bin/httpd"
 		exit 1
 	fi
 	LD_LIBRARY_PATH=${INSTALL_ROOT}/openssl-master/lib "${SIEGE}" -t ${TEST_TIME}  -b \
 	    -f siege_urls.txt 2> "${RESULT_DIR}/${RESULTS}"
+	if [[ $? -ne 0 ]] ; then
+		echo  "${INSTALL_ROOT}/${SSL_LIB} can not run siege"
+		cat "${RESULT_DIR}/${RESULTS}"
+		exit 1
+	fi
 
-	$("${INSTALL_ROOT}/${SSL_LIB}/bin/apachectl" stop) || exit 1
+	LD_LIBRARY_PATH=${INSTALL_ROOT}/${SSL_LIB}/lib \
+	    ${INSTALL_ROOT}/${SSL_LIB}/bin/httpd -k stop || exit 1
+	pgrep httpd
+	while [[ $? -eq 0 ]] ; do
+		sleep 1
+		LD_LIBRARY_PATH=${INSTALL_ROOT}/${SSL_LIB}/lib \
+		    ${INSTALL_ROOT}/${SSL_LIB}/bin/httpd -k stop || exit 1
+		echo "stopping ${INSTALL_ROOT}/${SSL_LIB}/bin/httpd"
+		pgrep httpd
+	done
 
 	#
 	# save apache configuration used for testing along the results.
