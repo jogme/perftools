@@ -804,7 +804,7 @@ function enable_mpm_prefork {
 	# enable pre-fork mpm module
 	#
 	cp "${CONF_FILE}" "${CONF_FILE}".wrk
-	sed -e 's/\(^#\)\(LoadModule mpm_worker_module .*$\)/\2/g' \
+	sed -e 's/\(^#\)\(LoadModule mpm_prefork_module .*$\)/\2/g' \
 	    "${CONF_FILE}".wrk > "${CONF_FILE}" || exit 1
 }
 
