@@ -24,33 +24,34 @@ HAPROXY_VERSION='v3.2.0'
 
 function install_haproxy {
 	typeset VERSION=${HAPROXY_VERSION:-v3.2.0}
-	typeset SSL_LIB=$1
+	typeset SSL_LIB=openssl-master
     typeset HAPROXY_REPO="https://github.com/haproxy/haproxy.git"
     typeset BASENAME='haproxy'
     typeset DIRNAME="${BASENAME}-${VERSION}"
     typeset CERTDIR="${INSTALL_ROOT}/${SSL_LIB}/conf"
 
-	if [[ -z "${SSL_LIB}" ]] ; then
-		SSL_LIB='openssl-master'
-	fi
+    if [[ -z "${INSTALL_ROOT}/${SSL_LIB}/sbin/haproxy" ]] ; then
+        echo "haproxy already installed; skipping.."
+    else
+        cd "${WORKSPACE_ROOT}"
+        mkdir -p "${DIRNAME}"
+        cd "${DIRNAME}"
+        git clone "${HAPROXY_REPO}" -b ${VERSION} --depth 1 . || exit 1
+        
+        # haproxy does not have a configure script; only a big makefile
+        make ${MAKE_OPTS} \
+             TARGET=generic \
+             USE_OPENSSL=1 \
+             SSL_INC="${INSTALL_ROOT}/${SSL_LIB}/include" \
+             SSL_LIB="${INSTALL_ROOT}/${SSL_LIB}/lib" || exit 1
 
-	cd "${WORKSPACE_ROOT}"
-	mkdir -p "${DIRNAME}"
-	cd "${DIRNAME}"
-	git clone "${HAPROXY_REPO}" -b ${VERSION} --depth 1 . || exit 1
-    
-    # haproxy does not have a configure script; only a big makefile
-    make ${MAKE_OPTS} \
-         TARGET=generic \
-         USE_OPENSSL=1 \
-         SSL_INC="${INSTALL_ROOT}/${SSL_LIB}/include" \
-         SSL_LIB="${INSTALL_ROOT}/${SSL_LIB}/lib" || exit 1
-
-    make install ${MAKE_OPTS} \
-         PREFIX="${INSTALL_ROOT}/${SSL_LIB}"
+        make install ${MAKE_OPTS} \
+             PREFIX="${INSTALL_ROOT}/${SSL_LIB}"
+    fi
 
     # now generate the certificates
     # await that openssl-master is always installed
+    echo "generating new certificates for haproxy"
     LD_LIBRARY_PATH=${INSTALL_ROOT}/openssl-master/lib ${INSTALL_ROOT}/openssl-master/bin/openssl req \
     -newkey rsa:2048 \
     -nodes \
@@ -85,7 +86,7 @@ function install_haproxy {
     cat "${CERTDIR}/haproxy_ca.crt" "${CERTDIR}/haproxy_privateCA.pem" > "${CERTDIR}/haproxy_server.pem"
 
     # setting up SSL Termination mode for now
-    cat <<EOF > "${INSTALL_ROOT}/${SSL_LIB}/conf/haproxy.cfg"
+    cat <<EOF > "${INSTALL_ROOT}/openssl-master/conf/haproxy.cfg"
 frontend test_client
   mode http
   bind :${HTTPS_PORT} ssl crt ${CERTDIR}/haproxy_server.pem
@@ -96,13 +97,25 @@ backend test_webserver
   balance roundrobin
   server s1 ${HOST}:${HTTPS_PORT}
 EOF
+}
 
-    # give the cert to the "client"
-	if [[ -z "${INSTALL_ROOT}/${SSL_LIB}/etc/siegerc" ]] ; then
+function run_haproxy {
+    typeset OPENSSL_DIR="${INSTALL_ROOT}/openssl-master"
+
+    # configure siege to use haproxy
+	if [[ -z "${OPENSSL_DIR}/etc/siegerc" ]] ; then
         echo "Did not found siegerc. Siege should be installed first."
         exit 1
 	fi
-    echo "ssl-cert = ${CERTDIR}/haproxy_ca.crt" >> "${INSTALL_ROOT}/${SSL_LIB}/etc/siegerc"
+    echo "#haproxy" >> "${OPENSSL_DIR}/etc/siegerc"
+    echo "ssl-cert = ${OPENSSL_DIR}/conf/haproxy_ca.crt" >> "${OPENSSL_DIR}/etc/siegerc"
+
+    LD_LIBRARY_PATH="${OPENSSL_DIR}/lib:${LD_LIBRARY_PATH}" "${OPENSSL_DIR}/sbin/haproxy" -f "${OPENSSL_DIR}/conf/haproxy.cfg" -D
 }
 
-install_haproxy openssl-master
+function kill_haproxy {
+    pkill -f haproxy
+}
+
+#TODO add options to configure server/client/both side certificate for haproxy
+install_haproxy
