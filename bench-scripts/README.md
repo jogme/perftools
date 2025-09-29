@@ -57,6 +57,24 @@ Apart from adjusting paths in nginx.conf the script also sets
 option `work_process` to auto. Nginx server configuration is
 saved along the results for each test.
 
+## Build requirements
+
+Requirements for ubuntu are the following:
+    - ksh
+    - gnuplot
+    - git
+    - ninja-build
+    - cmake
+    - wget
+    - autoconf
+    - bzip2
+    - libpcre2-dev
+    - libexpat-dev
+    - golang-go
+    - zlib1g-dev
+    - libtool
+    - g++
+
 [1]: https://www.openssl.org/
 
 [2]: https://www.wolfssl.com/
