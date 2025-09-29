@@ -1,0 +1,108 @@
+#!/usr/bin/env ksh
+#
+# Copyright 2025 The OpenSSL Project Authors. All Rights Reserved.
+#
+# Licensed under the Apache License 2.0 (the "License").  You may not use
+# this file except in compliance with the License.  You can obtain a copy
+# in the file LICENSE in the source distribution or at
+# https://www.openssl.org/source/license.html
+#
+
+set -x
+
+INSTALL_ROOT=${BENCH_INSTALL_ROOT:-"/tmp/bench.binaries"}
+RESULT_DIR=${BENCH_RESULTS:-"${INSTALL_ROOT}/results"}
+WORKSPACE_ROOT=${BENCH_WORKSPACE_ROOT:-"/tmp/bench.workspace"}
+MAKE_OPTS=${BENCH_MAKE_OPTS}
+HTTPS_PORT=${BENCH_HTTPS_PORT:-'4430'}
+HTTP_PORT=${BENCH_HTTP_PORT:-'8080'}
+CERT_SUBJ=${BENCH_CERT_SUBJ:-'/CN=localhost'}
+CERT_ALT_SUBJ=${BENCH_CERT_ALT_SUBJ:-'subjectAltName=DNS:localhost,IP:127.0.0.1'}
+TEST_TIME=${BENCH_TEST_TIME:-'5M'}
+HOST=${BENCH_HOST:-'127.0.0.1'}
+HAPROXY_VERSION='v3.2.0'
+
+function install_haproxy {
+	typeset VERSION=${HAPROXY_VERSION:-v3.2.0}
+	typeset SSL_LIB=$1
+    typeset HAPROXY_REPO="https://github.com/haproxy/haproxy.git"
+    typeset BASENAME='haproxy'
+    typeset DIRNAME="${BASENAME}-${VERSION}"
+    typeset CERTDIR="${INSTALL_ROOT}/${SSL_LIB}/conf"
+
+	if [[ -z "${SSL_LIB}" ]] ; then
+		SSL_LIB='openssl-master'
+	fi
+
+	cd "${WORKSPACE_ROOT}"
+	mkdir -p "${DIRNAME}"
+	cd "${DIRNAME}"
+	git clone "${HAPROXY_REPO}" -b ${VERSION} --depth 1 . || exit 1
+    
+    # haproxy does not have a configure script; only a big makefile
+    make ${MAKE_OPTS} \
+         TARGET=generic \
+         USE_OPENSSL=1 \
+         SSL_INC="${INSTALL_ROOT}/${SSL_LIB}/include" \
+         SSL_LIB="${INSTALL_ROOT}/${SSL_LIB}/lib" || exit 1
+
+    make install ${MAKE_OPTS} \
+         PREFIX="${INSTALL_ROOT}/${SSL_LIB}"
+
+    # now generate the certificates
+    # await that openssl-master is always installed
+    LD_LIBRARY_PATH=${INSTALL_ROOT}/openssl-master/lib ${INSTALL_ROOT}/openssl-master/bin/openssl req \
+    -newkey rsa:2048 \
+    -nodes \
+    -x509 \
+    -days 1 \
+    -keyout "${CERTDIR}/haproxy_privateCA.pem" \
+    -out "${CERTDIR}/haproxy_ca.crt" \
+    -subj "/C=US/ST=California/L=San Francisco/O=Example Inc/OU=IT/CN=example.com"
+
+    LD_LIBRARY_PATH=${INSTALL_ROOT}/openssl-master/lib ${INSTALL_ROOT}/openssl-master/bin/openssl req \
+    -newkey rsa:2048 \
+    -nodes \
+    -subj "/CN=exampleUser/O=exampleOrganization" \
+    -keyout "${CERTDIR}/clientKey.key" \
+    -out client.csr
+
+    LD_LIBRARY_PATH=${INSTALL_ROOT}/openssl-master/lib ${INSTALL_ROOT}/openssl-master/bin/openssl req \
+    -x509 \
+    -in client.csr \
+    -out "${CERTDIR}/haproxy_client.crt" \
+    -CA "${CERTDIR}/haproxy_ca.crt" \
+    -CAkey "${CERTDIR}/haproxy_privateCA.pem" \
+    -days 1 \
+    -copy_extensions copyall \
+    -addext "basicConstraints=CA:FALSE" \
+    -addext "keyUsage=digitalSignature" \
+    -addext "extendedKeyUsage=clientAuth" \
+    -addext "subjectKeyIdentifier=hash" \
+    -addext "authorityKeyIdentifier=keyid,issuer"
+
+    # create the clientkey for haproxy
+    cat "${CERTDIR}/haproxy_ca.crt" "${CERTDIR}/haproxy_privateCA.pem" > "${CERTDIR}/haproxy_server.pem"
+
+    # setting up SSL Termination mode for now
+    cat <<EOF > "${INSTALL_ROOT}/${SSL_LIB}/conf/haproxy.cfg"
+frontend test_client
+  mode http
+  bind :${HTTPS_PORT} ssl crt ${CERTDIR}/haproxy_server.pem
+  default_backend test_webserver
+
+backend test_webserver
+  mode http
+  balance roundrobin
+  server s1 ${HOST}:${HTTPS_PORT}
+EOF
+
+    # give the cert to the "client"
+	if [[ -z "${INSTALL_ROOT}/${SSL_LIB}/etc/siegerc" ]] ; then
+        echo "Did not found siegerc. Siege should be installed first."
+        exit 1
+	fi
+    echo "ssl-cert = ${CERTDIR}/haproxy_ca.crt" >> "${INSTALL_ROOT}/${SSL_LIB}/etc/siegerc"
+}
+
+install_haproxy openssl-master
