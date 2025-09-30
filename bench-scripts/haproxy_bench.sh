@@ -34,7 +34,7 @@ function install_haproxy {
         echo "haproxy already installed; skipping.."
     else
         cd "${WORKSPACE_ROOT}"
-        mkdir -p "${DIRNAME}"
+        mkdir -p "${DIRNAME}" || exit 1
         cd "${DIRNAME}"
         git clone "${HAPROXY_REPO}" -b ${VERSION} --depth 1 . || exit 1
         
@@ -46,7 +46,7 @@ function install_haproxy {
              SSL_LIB="${INSTALL_ROOT}/${SSL_LIB}/lib" || exit 1
 
         make install ${MAKE_OPTS} \
-             PREFIX="${INSTALL_ROOT}/${SSL_LIB}"
+             PREFIX="${INSTALL_ROOT}/${SSL_LIB}" || exit 1
     fi
 
     # now generate the certificates
@@ -59,14 +59,14 @@ function install_haproxy {
     -days 1 \
     -keyout "${CERTDIR}/haproxy_privateCA.pem" \
     -out "${CERTDIR}/haproxy_ca.crt" \
-    -subj "/C=US/ST=California/L=San Francisco/O=Example Inc/OU=IT/CN=example.com"
+    -subj "/C=US/ST=California/L=San Francisco/O=Example Inc/OU=IT/CN=example.com" || exit 1
 
     LD_LIBRARY_PATH=${INSTALL_ROOT}/openssl-master/lib ${INSTALL_ROOT}/openssl-master/bin/openssl req \
     -newkey rsa:2048 \
     -nodes \
     -subj "/CN=exampleUser/O=exampleOrganization" \
     -keyout "${CERTDIR}/clientKey.key" \
-    -out client.csr
+    -out client.csr || exit 1
 
     LD_LIBRARY_PATH=${INSTALL_ROOT}/openssl-master/lib ${INSTALL_ROOT}/openssl-master/bin/openssl req \
     -x509 \
@@ -80,7 +80,7 @@ function install_haproxy {
     -addext "keyUsage=digitalSignature" \
     -addext "extendedKeyUsage=clientAuth" \
     -addext "subjectKeyIdentifier=hash" \
-    -addext "authorityKeyIdentifier=keyid,issuer"
+    -addext "authorityKeyIdentifier=keyid,issuer" || exit 1
 
     # create the clientkey for haproxy
     cat "${CERTDIR}/haproxy_ca.crt" "${CERTDIR}/haproxy_privateCA.pem" > "${CERTDIR}/haproxy_server.pem"
@@ -111,9 +111,18 @@ function run_haproxy {
     echo "ssl-cert = ${OPENSSL_DIR}/conf/haproxy_ca.crt" >> "${OPENSSL_DIR}/etc/siegerc"
 
     LD_LIBRARY_PATH="${OPENSSL_DIR}/lib:${LD_LIBRARY_PATH}" "${OPENSSL_DIR}/sbin/haproxy" -f "${OPENSSL_DIR}/conf/haproxy.cfg" -D
+    if [[ $? -ne 0 ]] ; then
+        echo "could not start haproxy"
+        exit 1
+    fi
 }
 
 function kill_haproxy {
+    typeset OPENSSL_DIR="${INSTALL_ROOT}/openssl-master"
+
+    # clear the siege config
+    sed '/#haproxy/{N;d;}' "${OPENSSL_DIR}/etc/siegerc" || exit 1
+
     pkill -f haproxy
 }
 

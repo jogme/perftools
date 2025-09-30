@@ -63,8 +63,12 @@ CERT_ALT_SUBJ=${BENCH_CERT_ALT_SUBJ:-'subjectAltName=DNS:localhost,IP:127.0.0.1'
 TEST_TIME=${BENCH_TEST_TIME:-'5M'}
 HOST=${BENCH_HOST:-'127.0.0.1'}
 APACHE_VERSION='2.4.65'
+HAPROXY=1
 
 . ./common_util.sh
+if [[ ${HAPROXY} -eq 1 ]] ; then
+    . ./haproxy_bench.sh
+fi
 
 function install_wolfssl_for_apache {
 	typeset VERSION=$1
@@ -844,6 +848,10 @@ function run_test {
 		echo "${HTTP}://${HOST}:${PORT}/`basename $i`" >> siege_urls.txt
 	done
 
+    if [[ "${HAPROXY}" -eq 1 ]] && [[ "${SSL_LIB}" != "no-ssl" ]] ; then
+        run_haproxy
+    fi
+
 	#
 	# start apache httpd server
 	#
@@ -881,6 +889,10 @@ function run_test {
 	    ${RESULT_DIR}/httpd-${SSL_LIB}.conf
 	cp ${INSTALL_ROOT}/${SSL_LIB}/conf/extra/httpd-ssl.conf \
 	    ${RESULT_DIR}/httpd-ssl-${SSL_LIB}.conf
+
+    if [[ "${HAPROXY}" -eq 1 ]] && [[ "${SSL_LIB}" != "no-ssl" ]] ; then
+        kill_haproxy
+    fi
 }
 
 function setup_tests {
