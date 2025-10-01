@@ -337,6 +337,10 @@ function setup_tests {
 		rm -rf *
 	done
 
+	install_openssl OpenSSL_1_1_1-stable
+	install_nginx OpenSSL_1_1_1-stable
+	config_nginx OpenSSL_1_1_1-stable
+
 	install_wolfssl 5.8.2
 	install_wolf_nginx wolfssl-5.8.2
 	config_nginx wolfssl-5.8.2
@@ -429,6 +433,7 @@ function run_tests {
 		run_test openssl-${i}
 	done
 	run_test openssl-master
+	run_test OpenSSL_1_1_1-stable
 	run_test libressl-4.1.0
 	#
 	# could not get apache with wolfssl working

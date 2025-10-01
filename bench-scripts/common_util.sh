@@ -119,8 +119,13 @@ function install_openssl {
 	git clone --single-branch -b ${BRANCH_NAME} --depth 1 \
 	    "${OPENSSL_REPO}" . || exit 1
 
-	./Configure --prefix="${INSTALL_ROOT}/${DIRNAME}" \
-	    --libdir="lib" || exit 1
+	if [[ "${DIRNAME}" = 'OpenSSL_1_1_1-stable' ]] ; then
+		./config --prefix="${INSTALL_ROOT}/${DIRNAME}" \
+		    --libdir="lib" || exit 1
+	else
+		./Configure --prefix="${INSTALL_ROOT}/${DIRNAME}" \
+		    --libdir="lib" || exit 1
+	fi
 	make ${MAKE_OPTS} || exit 1
 	make ${MAKE_OPTS} install || exit 1
 }

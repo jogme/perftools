@@ -899,6 +899,12 @@ function setup_tests {
 		clean_build
 	done
 
+	install_openssl OpenSSL_1_1_1-stable
+	install_apache OpenSSL_1_1_1-stable
+	config_apache OpenSSL_1_1_1-stable
+	cd "${WORKSPACE_ROOT}"
+	clean_build
+
 	#
 	# wolf-ssl does not work. It installs it starts,
 	# client can establish connection but handshake
@@ -975,6 +981,8 @@ function run_tests {
 	done
 	enable_mpm_event openssl-master
 	run_test openssl-master
+	enable_mpm_event OpenSSL_1_1_1-stable
+	run_test OpenSSL_1_1_1-stable
 	enable_mpm_event libressl-4.1.0
 	run_test libressl-4.1.0
 	#enable_mpm_event wolfssl-5.8.2
@@ -993,6 +1001,8 @@ function run_tests {
 	done
 	enable_mpm_worker openssl-master
 	run_test openssl-master
+	enable_mpm_worker OpenSSL_1_1_1-stable
+	run_test OpenSSL_1_1_1-stable
 	enable_mpm_worker libressl-4.1.0
 	run_test libressl-4.1.0
 	#enable_mpm_worker wolfssl-5.8.2
@@ -1011,6 +1021,8 @@ function run_tests {
 	done
 	enable_mpm_prefork openssl-master
 	run_test openssl-master
+	enable_mpm_prefork OpenSSL_1_1_1-stable
+	run_test OpenSSL_1_1_1-stable
 	enable_mpm_prefork libressl-4.1.0
 	run_test libressl-4.1.0
 	#enable_mpm_prefork wolfssl-5.8.2
