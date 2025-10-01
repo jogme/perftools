@@ -122,7 +122,9 @@ function run_haproxy {
         exit 1
 	fi
     echo "#haproxy" >> "${OPENSSL_DIR}/etc/siegerc"
-    echo "ssl-cert = ${OPENSSL_DIR}/conf/haproxy_ca.crt" >> "${OPENSSL_DIR}/etc/siegerc"
+    echo "ssl-cert = ${OPENSSL_DIR}/conf/client.crt" >> "${OPENSSL_DIR}/etc/siegerc"
+    echo "proxy-host = localhost" >> "${OPENSSL_DIR}/etc/siegerc"
+    echo "proxy-port = ${HAPROXY_HTTPS_PORT}" >> "${OPENSSL_DIR}/etc/siegerc"
 
     LD_LIBRARY_PATH="${OPENSSL_DIR}/lib:${LD_LIBRARY_PATH}" "${OPENSSL_DIR}/sbin/haproxy" -f "${OPENSSL_DIR}/conf/haproxy.cfg" -D
     if [[ $? -ne 0 ]] ; then
@@ -135,7 +137,7 @@ function kill_haproxy {
     typeset OPENSSL_DIR="${INSTALL_ROOT}/openssl-master"
 
     # clear the siege config
-    sed '/#haproxy/{N;d;}' "${OPENSSL_DIR}/etc/siegerc" || exit 1
+    sed '/#haproxy/,$d' "${OPENSSL_DIR}/etc/siegerc" || exit 1
 
     pkill -f haproxy
 }
