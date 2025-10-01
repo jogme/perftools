@@ -87,6 +87,11 @@ function install_haproxy {
 
     # setting up SSL Termination mode for now
     cat <<EOF > "${INSTALL_ROOT}/openssl-master/conf/haproxy.cfg"
+defaults
+  timeout server 40000
+  timeout client 40000
+  timeout connect 40000
+
 frontend test_client
   mode http
   bind :${HTTPS_PORT} ssl crt ${CERTDIR}/haproxy_server.pem
