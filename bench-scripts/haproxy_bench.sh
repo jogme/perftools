@@ -57,33 +57,42 @@ function install_haproxy {
     -nodes \
     -x509 \
     -days 1 \
-    -keyout "${CERTDIR}/haproxy_privateCA.pem" \
-    -out "${CERTDIR}/haproxy_ca.crt" \
-    -subj "/C=US/ST=California/L=San Francisco/O=Example Inc/OU=IT/CN=example.com" || exit 1
+    -keyout "${CERTDIR}/ca.key" \
+    -out "${CERTDIR}/ca.crt" \
+    -subj "/C=US/ST=California/L=San Francisco/O=Example Inc/OU=IT/CN=Example Test CA" || exit 1
 
     LD_LIBRARY_PATH=${INSTALL_ROOT}/openssl-master/lib ${INSTALL_ROOT}/openssl-master/bin/openssl req \
     -newkey rsa:2048 \
     -nodes \
-    -subj "/CN=exampleUser/O=exampleOrganization" \
-    -keyout "${CERTDIR}/clientKey.key" \
-    -out client.csr || exit 1
+    -keyout "${CERTDIR}/server.key" \
+    -out    "${CERTDIR}/server.csr" \
+    -subj "/CN=${HOST}" || exit 1
+
+    LD_LIBRARY_PATH=${INSTALL_ROOT}/openssl-master/lib ${INSTALL_ROOT}/openssl-master/bin/openssl x509 \
+    -req \
+    -in "${CERTDIR}/server.csr" \
+    -CA "${CERTDIR}/ca.crt" -CAkey "${CERTDIR}/ca.key" -CAcreateserial \
+    -days 1 \
+    -extfile <(printf "basicConstraints=CA:FALSE\nkeyUsage=digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\nsubjectAltName=DNS:${HOST}") \
+    -out "${CERTDIR}/server.crt" || exit 1
+
+    # HAProxy PEM must be: server cert + server key (+ chain)
+    cat "${CERTDIR}/server.crt" "${CERTDIR}/server.key" "${CERTDIR}/ca.crt" > "${CERTDIR}/haproxy_server.pem"
 
     LD_LIBRARY_PATH=${INSTALL_ROOT}/openssl-master/lib ${INSTALL_ROOT}/openssl-master/bin/openssl req \
-    -x509 \
-    -in client.csr \
-    -out "${CERTDIR}/haproxy_client.crt" \
-    -CA "${CERTDIR}/haproxy_ca.crt" \
-    -CAkey "${CERTDIR}/haproxy_privateCA.pem" \
-    -days 1 \
-    -copy_extensions copyall \
-    -addext "basicConstraints=CA:FALSE" \
-    -addext "keyUsage=digitalSignature" \
-    -addext "extendedKeyUsage=clientAuth" \
-    -addext "subjectKeyIdentifier=hash" \
-    -addext "authorityKeyIdentifier=keyid,issuer" || exit 1
+    -newkey rsa:2048 \
+    -nodes \
+    -keyout "${CERTDIR}/client.key" \
+    -out    "${CERTDIR}/client.csr" \
+    -subj "/CN=exampleUser/O=exampleOrganization" || exit 1
 
-    # create the clientkey for haproxy
-    cat "${CERTDIR}/haproxy_ca.crt" "${CERTDIR}/haproxy_privateCA.pem" > "${CERTDIR}/haproxy_server.pem"
+    LD_LIBRARY_PATH=${INSTALL_ROOT}/openssl-master/lib ${INSTALL_ROOT}/openssl-master/bin/openssl x509 \
+    -req \
+    -in "${CERTDIR}/client.csr" \
+    -CA "${CERTDIR}/ca.crt" -CAkey "${CERTDIR}/ca.key" -CAcreateserial \
+    -days 1 \
+    -extfile <(printf "basicConstraints=CA:FALSE\nkeyUsage=digitalSignature\nextendedKeyUsage=clientAuth") \
+    -out "${CERTDIR}/client.crt" || exit 1
 
     # setting up SSL Termination mode for now
     cat <<EOF > "${INSTALL_ROOT}/openssl-master/conf/haproxy.cfg"
@@ -94,7 +103,7 @@ defaults
 
 frontend test_client
   mode http
-  bind :${HTTPS_PORT} ssl crt ${CERTDIR}/haproxy_server.pem
+  bind :${HTTPS_PORT} ssl crt ${CERTDIR}/haproxy_server.pem ca-file ${CERTDIR}/ca.crt verify required
   default_backend test_webserver
 
 backend test_webserver
