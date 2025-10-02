@@ -903,6 +903,8 @@ function setup_tests {
 	cd "${WORKSPACE_ROOT}"
 	clean_build
 
+    install_haproxy
+
 	for i in 3.0 3.1 3.2 3.3 3.4 3.5 3.6 ; do
 		install_openssl openssl-$i ;
 		install_apache openssl-$i

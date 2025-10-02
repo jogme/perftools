@@ -14,8 +14,7 @@ INSTALL_ROOT=${BENCH_INSTALL_ROOT:-"/tmp/bench.binaries"}
 RESULT_DIR=${BENCH_RESULTS:-"${INSTALL_ROOT}/results"}
 WORKSPACE_ROOT=${BENCH_WORKSPACE_ROOT:-"/tmp/bench.workspace"}
 MAKE_OPTS=${BENCH_MAKE_OPTS}
-HTTPS_PORT=${BENCH_HTTPS_PORT:-'4430'}
-HTTP_PORT=${BENCH_HTTP_PORT:-'8080'}
+HAPROXY_HTTPS_PORT=${BENCH_HTTPS_PORT:-'4430'}
 CERT_SUBJ=${BENCH_CERT_SUBJ:-'/CN=localhost'}
 CERT_ALT_SUBJ=${BENCH_CERT_ALT_SUBJ:-'subjectAltName=DNS:localhost,IP:127.0.0.1'}
 TEST_TIME=${BENCH_TEST_TIME:-'5M'}
@@ -103,13 +102,13 @@ defaults
 
 frontend test_client
   mode http
-  bind :${HTTPS_PORT} ssl crt ${CERTDIR}/haproxy_server.pem ca-file ${CERTDIR}/ca.crt verify required
+  bind :${HAPROXY_HTTPS_PORT} ssl crt ${CERTDIR}/haproxy_server.pem ca-file ${CERTDIR}/ca.crt verify required
   default_backend test_webserver
 
 backend test_webserver
   mode http
   balance roundrobin
-  server s1 ${HOST}:${HTTPS_PORT}
+  server s1 ${HOST}:${HAPROXY_HTTPS_PORT}
 EOF
 }
 
@@ -143,4 +142,3 @@ function kill_haproxy {
 }
 
 #TODO add options to configure server/client/both side certificate for haproxy
-install_haproxy
