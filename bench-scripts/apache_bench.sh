@@ -845,7 +845,11 @@ function run_test {
 	#
 	rm -f siege_urls.txt
 	for i in `ls -1 ${HTDOCS}/*.txt` ; do
-		echo "${HTTP}://${HOST}:${PORT}/`basename $i`" >> siege_urls.txt
+        if [[ "${HAPROXY}" -eq 1 ]] && [[ "${SSL_LIB}" != "no-ssl" ]] ; then
+            echo "${HTTP}://${HOST}:${HAPROXY_HTTPS_PORT}/`basename $i`" >> siege_urls.txt
+        else
+            echo "${HTTP}://${HOST}:${PORT}/`basename $i`" >> siege_urls.txt
+        fi
 	done
 
     if [[ "${HAPROXY}" -eq 1 ]] && [[ "${SSL_LIB}" != "no-ssl" ]] ; then
@@ -903,7 +907,9 @@ function setup_tests {
 	cd "${WORKSPACE_ROOT}"
 	clean_build
 
-    install_haproxy
+    if [[ "${HAPROXY}" -eq 1 ]] && [[ "${SSL_LIB}" != "no-ssl" ]] ; then
+        install_haproxy
+    fi
 
 	for i in 3.0 3.1 3.2 3.3 3.4 3.5 3.6 ; do
 		install_openssl openssl-$i ;

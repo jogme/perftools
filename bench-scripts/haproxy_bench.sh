@@ -14,7 +14,7 @@ INSTALL_ROOT=${BENCH_INSTALL_ROOT:-"/tmp/bench.binaries"}
 RESULT_DIR=${BENCH_RESULTS:-"${INSTALL_ROOT}/results"}
 WORKSPACE_ROOT=${BENCH_WORKSPACE_ROOT:-"/tmp/bench.workspace"}
 MAKE_OPTS=${BENCH_MAKE_OPTS}
-HAPROXY_HTTPS_PORT=${BENCH_HTTPS_PORT:-'4430'}
+HAPROXY_HTTPS_PORT=${BENCH_HTTPS_PORT:-'42134'}
 CERT_SUBJ=${BENCH_CERT_SUBJ:-'/CN=localhost'}
 CERT_ALT_SUBJ=${BENCH_CERT_ALT_SUBJ:-'subjectAltName=DNS:localhost,IP:127.0.0.1'}
 TEST_TIME=${BENCH_TEST_TIME:-'5M'}
@@ -27,9 +27,9 @@ function install_haproxy {
     typeset HAPROXY_REPO="https://github.com/haproxy/haproxy.git"
     typeset BASENAME='haproxy'
     typeset DIRNAME="${BASENAME}-${VERSION}"
-    typeset CERTDIR="${INSTALL_ROOT}/${SSL_LIB}/conf"
+    typeset CERTDIR="${INSTALL_ROOT}/${SSL_LIB}/conf/certs"
 
-    if [[ -z "${INSTALL_ROOT}/${SSL_LIB}/sbin/haproxy" ]] ; then
+    if [[ -f "${INSTALL_ROOT}/${SSL_LIB}/sbin/haproxy" ]] ; then
         echo "haproxy already installed; skipping.."
     else
         cd "${WORKSPACE_ROOT}"
@@ -48,67 +48,63 @@ function install_haproxy {
              PREFIX="${INSTALL_ROOT}/${SSL_LIB}" || exit 1
     fi
 
+    mkdir -p ${CERTDIR}
+
     # now generate the certificates
     # await that openssl-master is always installed
     echo "generating new certificates for haproxy"
-    LD_LIBRARY_PATH=${INSTALL_ROOT}/openssl-master/lib ${INSTALL_ROOT}/openssl-master/bin/openssl req \
-    -newkey rsa:2048 \
-    -nodes \
-    -x509 \
-    -days 1 \
-    -keyout "${CERTDIR}/ca.key" \
-    -out "${CERTDIR}/ca.crt" \
-    -subj "/C=US/ST=California/L=San Francisco/O=Example Inc/OU=IT/CN=Example Test CA" || exit 1
+    OPENSSL_BIN="env LD_LIBRARY_PATH=${INSTALL_ROOT}/openssl-master/lib ${INSTALL_ROOT}/openssl-master/bin/openssl"
 
-    LD_LIBRARY_PATH=${INSTALL_ROOT}/openssl-master/lib ${INSTALL_ROOT}/openssl-master/bin/openssl req \
-    -newkey rsa:2048 \
-    -nodes \
-    -keyout "${CERTDIR}/server.key" \
-    -out    "${CERTDIR}/server.csr" \
-    -subj "/CN=${HOST}" || exit 1
+    # generating the key, cert of ca
+    $OPENSSL_BIN genpkey -algorithm rsa -pkeyopt rsa_keygen_bits:2048 -out "${CERTDIR}/ca_key.pem" || exit 1
+    $OPENSSL_BIN req -new -x509 -days 1 -key "${CERTDIR}/ca_key.pem" -out "${CERTDIR}/ca_cert.pem" -subj "/CN=Root CA" \
+        -addext "basicConstraints=critical,CA:true"  \
+        -addext "keyUsage=critical,keyCertSign,cRLSign" || exit 1
+    
+    # generating the client side
+    $OPENSSL_BIN genpkey -algorithm rsa -pkeyopt rsa_keygen_bits:2048 -out "${CERTDIR}/client_key.pem" || exit 1
+    $OPENSSL_BIN pkey -in "${CERTDIR}/client_key.pem" -pubout -out "${CERTDIR}/client_key_pub.pem" || exit 1
+    $OPENSSL_BIN req -new -out "${CERTDIR}/client_csr.pem" -subj "/CN=${HOST}" -key "${CERTDIR}/client_key.pem" \
+        -addext "${CERT_ALT_SUBJ}" \
+        -addext "keyUsage=critical,digitalSignature" || exit 1
+    $OPENSSL_BIN x509 -req -out "${CERTDIR}/client_cert.pem" -CAkey "${CERTDIR}/ca_key.pem" -CA "${CERTDIR}/ca_cert.pem" \
+        -days 1 -in "${CERTDIR}/client_csr.pem" -copy_extensions copy -ext "subjectAltName,keyUsage" \
+        -extfile <(printf "basicConstraints=critical,CA:false\nsubjectKeyIdentifier=none\n") || exit 1
 
-    LD_LIBRARY_PATH=${INSTALL_ROOT}/openssl-master/lib ${INSTALL_ROOT}/openssl-master/bin/openssl x509 \
-    -req \
-    -in "${CERTDIR}/server.csr" \
-    -CA "${CERTDIR}/ca.crt" -CAkey "${CERTDIR}/ca.key" -CAcreateserial \
-    -days 1 \
-    -extfile <(printf "basicConstraints=CA:FALSE\nkeyUsage=digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\nsubjectAltName=DNS:${HOST}") \
-    -out "${CERTDIR}/server.crt" || exit 1
+    # generating the server side
+    $OPENSSL_BIN genpkey -algorithm rsa -pkeyopt rsa_keygen_bits:2048 -out "${CERTDIR}/server_key.pem" || exit 1
+    $OPENSSL_BIN pkey -in "${CERTDIR}/server_key.pem" -pubout -out "${CERTDIR}/server_key_pub.pem" || exit 1
+    $OPENSSL_BIN req -new -out "${CERTDIR}/server_csr.pem" -subj "/CN=${HOST}" -key "${CERTDIR}/server_key.pem" \
+        -addext "${CERT_ALT_SUBJ}" \
+        -addext "keyUsage=critical,digitalSignature" || exit 1
+    $OPENSSL_BIN x509 -req -out "${CERTDIR}/server_cert.pem" -CAkey "${CERTDIR}/ca_key.pem" -CA "${CERTDIR}/ca_cert.pem" \
+        -days 1 -in "${CERTDIR}/server_csr.pem" -copy_extensions copy -ext "subjectAltName,keyUsage" \
+        -extfile <(printf "subjectKeyIdentifier=none\n"
+                   printf "${CERT_ALT_SUBJ}\n"
+                   printf "basicConstraints=critical,CA:false\n"
+                   printf "keyUsage=critical,keyEncipherment\n") || exit 1
 
     # HAProxy PEM must be: server cert + server key (+ chain)
-    cat "${CERTDIR}/server.crt" "${CERTDIR}/server.key" "${CERTDIR}/ca.crt" > "${CERTDIR}/haproxy_server.pem"
-
-    LD_LIBRARY_PATH=${INSTALL_ROOT}/openssl-master/lib ${INSTALL_ROOT}/openssl-master/bin/openssl req \
-    -newkey rsa:2048 \
-    -nodes \
-    -keyout "${CERTDIR}/client.key" \
-    -out    "${CERTDIR}/client.csr" \
-    -subj "/CN=exampleUser/O=exampleOrganization" || exit 1
-
-    LD_LIBRARY_PATH=${INSTALL_ROOT}/openssl-master/lib ${INSTALL_ROOT}/openssl-master/bin/openssl x509 \
-    -req \
-    -in "${CERTDIR}/client.csr" \
-    -CA "${CERTDIR}/ca.crt" -CAkey "${CERTDIR}/ca.key" -CAcreateserial \
-    -days 1 \
-    -extfile <(printf "basicConstraints=CA:FALSE\nkeyUsage=digitalSignature\nextendedKeyUsage=clientAuth") \
-    -out "${CERTDIR}/client.crt" || exit 1
+    cat "${CERTDIR}/server_cert.pem" "${CERTDIR}/server_key.pem" "${CERTDIR}/ca_cert.pem" > "${CERTDIR}/haproxy_server.pem"
 
     # setting up SSL Termination mode for now
+    # TODO to set up haproxy modes: encoding from client to haproxy, to server from haproxy, both
+    # the first needs a non TLS connection to the server - use the HTTP_PORT, otherwise use the HTTPS_PORT
     cat <<EOF > "${INSTALL_ROOT}/openssl-master/conf/haproxy.cfg"
 defaults
-  timeout server 40000
-  timeout client 40000
-  timeout connect 40000
+  timeout server 10s
+  timeout client 10s
+  timeout connect 10s
 
 frontend test_client
   mode http
-  bind :${HAPROXY_HTTPS_PORT} ssl crt ${CERTDIR}/haproxy_server.pem ca-file ${CERTDIR}/ca.crt verify required
+  bind :${HAPROXY_HTTPS_PORT} ssl crt ${CERTDIR}/haproxy_server.pem ca-file ${CERTDIR}/ca_cert.pem verify required
   default_backend test_webserver
 
 backend test_webserver
   mode http
   balance roundrobin
-  server s1 ${HOST}:${HAPROXY_HTTPS_PORT}
+  server s1 ${HOST}:${HTTP_PORT}
 EOF
 }
 
@@ -116,14 +112,13 @@ function run_haproxy {
     typeset OPENSSL_DIR="${INSTALL_ROOT}/openssl-master"
 
     # configure siege to use haproxy
-	if [[ -z "${OPENSSL_DIR}/etc/siegerc" ]] ; then
+	if [[ ! -f "${OPENSSL_DIR}/etc/siegerc" ]] ; then
         echo "Did not found siegerc. Siege should be installed first."
         exit 1
 	fi
     echo "#haproxy" >> "${OPENSSL_DIR}/etc/siegerc"
-    echo "ssl-cert = ${OPENSSL_DIR}/conf/client.crt" >> "${OPENSSL_DIR}/etc/siegerc"
-    echo "proxy-host = localhost" >> "${OPENSSL_DIR}/etc/siegerc"
-    echo "proxy-port = ${HAPROXY_HTTPS_PORT}" >> "${OPENSSL_DIR}/etc/siegerc"
+    echo "ssl-cert = ${OPENSSL_DIR}/conf/certs/client_cert.pem" >> "${OPENSSL_DIR}/etc/siegerc"
+    echo "ssl-key = ${OPENSSL_DIR}/conf/certs/client_key.pem" >> "${OPENSSL_DIR}/etc/siegerc"
 
     LD_LIBRARY_PATH="${OPENSSL_DIR}/lib:${LD_LIBRARY_PATH}" "${OPENSSL_DIR}/sbin/haproxy" -f "${OPENSSL_DIR}/conf/haproxy.cfg" -D
     if [[ $? -ne 0 ]] ; then
@@ -136,7 +131,7 @@ function kill_haproxy {
     typeset OPENSSL_DIR="${INSTALL_ROOT}/openssl-master"
 
     # clear the siege config
-    sed '/#haproxy/,$d' "${OPENSSL_DIR}/etc/siegerc" || exit 1
+    sed -i '/#haproxy/,$d' "${OPENSSL_DIR}/etc/siegerc" || exit 1
 
     pkill -f haproxy
 }
