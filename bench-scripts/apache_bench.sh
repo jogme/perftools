@@ -55,7 +55,7 @@ set -x
 INSTALL_ROOT=${BENCH_INSTALL_ROOT:-"/tmp/bench.binaries"}
 RESULT_DIR=${BENCH_RESULTS:-"${INSTALL_ROOT}/results"}
 WORKSPACE_ROOT=${BENCH_WORKSPACE_ROOT:-"/tmp/bench.workspace"}
-MAKE_OPTS=${BENCH_MAKE_OPTS}
+MAKE_OPTS="${BENCH_MAKE_OPTS} -j 20"
 HTTPS_PORT=${BENCH_HTTPS_PORT:-'4430'}
 HTTP_PORT=${BENCH_HTTP_PORT:-'8080'}
 CERT_SUBJ=${BENCH_CERT_SUBJ:-'/CN=localhost'}
@@ -910,78 +910,78 @@ function setup_tests {
 
     install_haproxy
 
-	for i in 3.0 3.1 3.2 3.3 3.4 3.5 3.6 ; do
-		install_openssl openssl-$i ;
-		install_apache openssl-$i
-		config_apache openssl-$i
-		cd "${WORKSPACE_ROOT}"
-		clean_build
-	done
+	#for i in 3.0 3.1 3.2 3.3 3.4 3.5 3.6 ; do
+	#	install_openssl openssl-$i ;
+	#	install_apache openssl-$i
+	#	config_apache openssl-$i
+	#	cd "${WORKSPACE_ROOT}"
+	#	clean_build
+	#done
 
-	install_openssl OpenSSL_1_1_1-stable
-	install_apache OpenSSL_1_1_1-stable
-	config_apache OpenSSL_1_1_1-stable
-	cd "${WORKSPACE_ROOT}"
-	clean_build
+	#install_openssl OpenSSL_1_1_1-stable
+	#install_apache OpenSSL_1_1_1-stable
+	#config_apache OpenSSL_1_1_1-stable
+	#cd "${WORKSPACE_ROOT}"
+	#clean_build
 
-	#
-	# wolf-ssl does not work. It installs it starts,
-	# client can establish connection but handshake
-	# seems to get stuck. I can see client sends its
-	# hello with TLS-1.2/TLS-1.3 and there is no
-	# reply from server, for more than 10secs.
-	#
-	# this is the configuration I'm using:
-	# ServerName localhost
-	# Listen 4430
-	#
-	# SSLCipherSuite HIGH:MEDIUM:!MD5:!RC4:!3DES
-	# SSLHonorCipherOrder on
-	# SSLProtocol all -SSLv3
-	# <VirtualHost *:443>
-	# ServerName localhost
-	# DocumentRoot "/home/sashan/work.openssl/bench.binaries/wolfssl-5.8.2/htdocs"
-	# ErrorLog "/home/sashan/work.openssl/bench.binaries/wolfssl-5.8.2/logs/error_log"
-	# TransferLog "/home/sashan/work.openssl/bench.binaries/wolfssl-5.8.2/logs/access_log"
-	# SSLEngine on
-	# SSLCertificateFile "/home/sashan/work.openssl/bench.binaries/wolfssl-5.8.2/conf/server.crt"
-	# SSLCertificateKeyFile "/home/sashan/work.openssl/bench.binaries/wolfssl-5.8.2/conf/server.key"
-	# </VirtualHost>
-	#
-	# Unlike the suggested configuration here:
-	#	https://github.com/wolfSSL/osp/blob/master/apache-httpd/README.md#running-simple-https
-	# I had to add SSLCipherSuite SSLHonorCipherOrder SSLProtocol. The configuration from
-	# link above does not work either. The httpd process refuses to start, leaving message:
-	#
-	# [Fri Aug 29 17:10:39.065428 2025] [ssl:emerg] [pid 3263901:tid 133639498441152] AH01898: Unable to configure permitted SSL ciphers
-	# [Fri Aug 29 17:10:39.065460 2025] [ssl:emerg] [pid 3263901:tid 133639498441152] AH02311: Fatal error initialising mod_ssl, exiting. See /home/sashan/work.openssl/bench.binaries/wolfssl-5.8.2/logs/error_log for more information
-	# AH00016: Configuration Failed
-	#
-	# any hints/advise on how to get apache with wolfssl going is welcomed
-	#
-	install_wolfssl_for_apache 5.8.2
-	install_wolf_apache wolfssl-5.8.2
-	config_apache wolfssl-5.8.2
-	cd "${WORKSPACE_ROOT}"
-	clean_build
+	##
+	## wolf-ssl does not work. It installs it starts,
+	## client can establish connection but handshake
+	## seems to get stuck. I can see client sends its
+	## hello with TLS-1.2/TLS-1.3 and there is no
+	## reply from server, for more than 10secs.
+	##
+	## this is the configuration I'm using:
+	## ServerName localhost
+	## Listen 4430
+	##
+	## SSLCipherSuite HIGH:MEDIUM:!MD5:!RC4:!3DES
+	## SSLHonorCipherOrder on
+	## SSLProtocol all -SSLv3
+	## <VirtualHost *:443>
+	## ServerName localhost
+	## DocumentRoot "/home/sashan/work.openssl/bench.binaries/wolfssl-5.8.2/htdocs"
+	## ErrorLog "/home/sashan/work.openssl/bench.binaries/wolfssl-5.8.2/logs/error_log"
+	## TransferLog "/home/sashan/work.openssl/bench.binaries/wolfssl-5.8.2/logs/access_log"
+	## SSLEngine on
+	## SSLCertificateFile "/home/sashan/work.openssl/bench.binaries/wolfssl-5.8.2/conf/server.crt"
+	## SSLCertificateKeyFile "/home/sashan/work.openssl/bench.binaries/wolfssl-5.8.2/conf/server.key"
+	## </VirtualHost>
+	##
+	## Unlike the suggested configuration here:
+	##	https://github.com/wolfSSL/osp/blob/master/apache-httpd/README.md#running-simple-https
+	## I had to add SSLCipherSuite SSLHonorCipherOrder SSLProtocol. The configuration from
+	## link above does not work either. The httpd process refuses to start, leaving message:
+	##
+	## [Fri Aug 29 17:10:39.065428 2025] [ssl:emerg] [pid 3263901:tid 133639498441152] AH01898: Unable to configure permitted SSL ciphers
+	## [Fri Aug 29 17:10:39.065460 2025] [ssl:emerg] [pid 3263901:tid 133639498441152] AH02311: Fatal error initialising mod_ssl, exiting. See /home/sashan/work.openssl/bench.binaries/wolfssl-5.8.2/logs/error_log for more information
+	## AH00016: Configuration Failed
+	##
+	## any hints/advise on how to get apache with wolfssl going is welcomed
+	##
+	#install_wolfssl_for_apache 5.8.2
+	#install_wolf_apache wolfssl-5.8.2
+	#config_apache wolfssl-5.8.2
+	#cd "${WORKSPACE_ROOT}"
+	#clean_build
 
-	install_libressl 4.1.0
-	install_apache libressl-4.1.0
-	config_apache libressl-4.1.0
-	cd "${WORKSPACE_ROOT}"
-	clean_build
+	#install_libressl 4.1.0
+	#install_apache libressl-4.1.0
+	#config_apache libressl-4.1.0
+	#cd "${WORKSPACE_ROOT}"
+	#clean_build
 
-	install_boringssl
-	install_apache_boring boringssl
-	config_apache boringssl
-	cd "${WORKSPACE_ROOT}"
-	clean_build
+	#install_boringssl
+	#install_apache_boring boringssl
+	#config_apache boringssl
+	#cd "${WORKSPACE_ROOT}"
+	#clean_build
 
-	install_aws_lc
-	install_apache_aws aws-lc
-	config_apache aws-lc
-	cd "${WORKSPACE_ROOT}"
-	clean_build
+	#install_aws_lc
+	#install_apache_aws aws-lc
+	#config_apache aws-lc
+	#cd "${WORKSPACE_ROOT}"
+	#clean_build
 }
 
 function run_tests {
@@ -991,74 +991,74 @@ function run_tests {
 		mkdir -p ${RESULT_DIR}/$i || exit 1
 	done
 
-	enable_mpm_event
+	#enable_mpm_event
 	RESULT_DIR="${SAVE_RESULT_DIR}/event"
-	run_test nossl
-	for i in 3.0 3.1 3.2 3.3 3.4 3.5 3.6 ; do
-		enable_mpm_event openssl-${i}
-		run_test openssl-${i}
-	done
+	#run_test nossl
+	#for i in 3.0 3.1 3.2 3.3 3.4 3.5 3.6 ; do
+	#	enable_mpm_event openssl-${i}
+	#	run_test openssl-${i}
+	#done
 	enable_mpm_event openssl-master
 	run_test openssl-master
     HAPROXY=1
 	run_test openssl-master
     HAPROXY=0
-	enable_mpm_event OpenSSL_1_1_1-stable
-	run_test OpenSSL_1_1_1-stable
-	enable_mpm_event libressl-4.1.0
-	run_test libressl-4.1.0
-	#enable_mpm_event wolfssl-5.8.2
-	#run_test wolfssl-5.8.2
-	enable_mpm_event boringssl
-	run_test boringssl
-	enable_mpm_event aws-lc
-	run_test aws-lc
+	#enable_mpm_event OpenSSL_1_1_1-stable
+	#run_test OpenSSL_1_1_1-stable
+	#enable_mpm_event libressl-4.1.0
+	#run_test libressl-4.1.0
+	##enable_mpm_event wolfssl-5.8.2
+	##run_test wolfssl-5.8.2
+	#enable_mpm_event boringssl
+	#run_test boringssl
+	#enable_mpm_event aws-lc
+	#run_test aws-lc
 
 	enable_mpm_worker
 	RESULT_DIR="${SAVE_RESULT_DIR}/worker"
-	run_test nossl
-	for i in 3.0 3.1 3.2 3.3 3.4 3.5 3.6 ; do
-		enable_mpm_worker openssl-${i}
-		run_test openssl-${i}
-	done
+	#run_test nossl
+	#for i in 3.0 3.1 3.2 3.3 3.4 3.5 3.6 ; do
+	#	enable_mpm_worker openssl-${i}
+	#	run_test openssl-${i}
+	#done
 	enable_mpm_worker openssl-master
 	run_test openssl-master
     HAPROXY=1
 	run_test openssl-master
     HAPROXY=0
-	enable_mpm_worker OpenSSL_1_1_1-stable
-	run_test OpenSSL_1_1_1-stable
-	enable_mpm_worker libressl-4.1.0
-	run_test libressl-4.1.0
-	#enable_mpm_worker wolfssl-5.8.2
-	#run_test wolfssl-5.8.2
-	enable_mpm_worker boringssl
-	run_test boringssl
-	enable_mpm_worker aws-lc
-	run_test aws-lc
+	#enable_mpm_worker OpenSSL_1_1_1-stable
+	#run_test OpenSSL_1_1_1-stable
+	#enable_mpm_worker libressl-4.1.0
+	#run_test libressl-4.1.0
+	##enable_mpm_worker wolfssl-5.8.2
+	##run_test wolfssl-5.8.2
+	#enable_mpm_worker boringssl
+	#run_test boringssl
+	#enable_mpm_worker aws-lc
+	#run_test aws-lc
 
 	enable_mpm_prefork
 	RESULT_DIR="${SAVE_RESULT_DIR}/pre-fork"
-	run_test nossl
-	for i in 3.0 3.1 3.2 3.3 3.4 3.5 3.6 ; do
-		enable_mpm_prefork openssl-${i}
-		run_test openssl-${i}
-	done
+	#run_test nossl
+	#for i in 3.0 3.1 3.2 3.3 3.4 3.5 3.6 ; do
+	#	enable_mpm_prefork openssl-${i}
+	#	run_test openssl-${i}
+	#done
 	enable_mpm_prefork openssl-master
 	run_test openssl-master
     HAPROXY=1
 	run_test openssl-master
     HAPROXY=0
-	enable_mpm_prefork OpenSSL_1_1_1-stable
-	run_test OpenSSL_1_1_1-stable
-	enable_mpm_prefork libressl-4.1.0
-	run_test libressl-4.1.0
-	#enable_mpm_prefork wolfssl-5.8.2
-	#run_test wolfssl-5.8.2
-	enable_mpm_prefork boringssl
-	run_test boringssl
-	enable_mpm_prefork aws-lc
-	run_test aws-lc
+	#enable_mpm_prefork OpenSSL_1_1_1-stable
+	#run_test OpenSSL_1_1_1-stable
+	#enable_mpm_prefork libressl-4.1.0
+	#run_test libressl-4.1.0
+	##enable_mpm_prefork wolfssl-5.8.2
+	##run_test wolfssl-5.8.2
+	#enable_mpm_prefork boringssl
+	#run_test boringssl
+	#enable_mpm_prefork aws-lc
+	#run_test aws-lc
 
 	RESULT_DIR=${SAVE_RESULT_DIR}
 }
