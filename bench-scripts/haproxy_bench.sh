@@ -14,7 +14,10 @@ INSTALL_ROOT=${BENCH_INSTALL_ROOT:-"/tmp/bench.binaries"}
 RESULT_DIR=${BENCH_RESULTS:-"${INSTALL_ROOT}/results"}
 WORKSPACE_ROOT=${BENCH_WORKSPACE_ROOT:-"/tmp/bench.workspace"}
 MAKE_OPTS=${BENCH_MAKE_OPTS}
-HAPROXY_HTTPS_PORT=${BENCH_HTTPS_PORT:-'42134'}
+HAPROXY_NOSSL_PORT='42128'
+HAPROXY_C2P_PORT='42132'
+HAPROXY_P2S_PORT='42134'
+HAPROXY_C2S_PORT='42136'
 CERT_SUBJ=${BENCH_CERT_SUBJ:-'/CN=localhost'}
 CERT_ALT_SUBJ=${BENCH_CERT_ALT_SUBJ:-'subjectAltName=DNS:localhost,IP:127.0.0.1'}
 TEST_TIME=${BENCH_TEST_TIME:-'5M'}
@@ -88,7 +91,7 @@ function install_haproxy {
     cat "${CERTDIR}/server_cert.pem" "${CERTDIR}/server_key.pem" "${CERTDIR}/ca_cert.pem" > "${CERTDIR}/haproxy_server.pem"
 
     # setting up SSL Termination mode for now
-    # TODO to set up haproxy modes: encoding from client to haproxy, to server from haproxy, both
+    # haproxy modes: encoding from client to haproxy, to server from haproxy, both
     # the first needs a non TLS connection to the server - use the HTTP_PORT, otherwise use the HTTPS_PORT
     cat <<EOF > "${INSTALL_ROOT}/openssl-master/conf/haproxy.cfg"
 defaults
@@ -96,15 +99,35 @@ defaults
   timeout client 10s
   timeout connect 10s
 
-frontend test_client
+frontend test_no_ssl
   mode http
-  bind :${HAPROXY_HTTPS_PORT} ssl crt ${CERTDIR}/haproxy_server.pem ca-file ${CERTDIR}/ca_cert.pem verify required
-  default_backend test_webserver
+  bind :${HAPROXY_NOSSL_PORT}
+  default_backend http_test
 
-backend test_webserver
+frontend test_client2proxy
   mode http
-  balance roundrobin
+  bind :${HAPROXY_C2P_PORT} ssl crt ${CERTDIR}/haproxy_server.pem ca-file ${CERTDIR}/ca_cert.pem verify required
+  default_backend http_test
+
+frontend test_proxy2server
+  mode http
+  bind :${HAPROXY_P2S_PORT}
+  default_backend https_test
+
+frontend test_client2server
+  mode http
+  bind :${HAPROXY_C2S_PORT} ssl crt ${CERTDIR}/haproxy_server.pem ca-file ${CERTDIR}/ca_cert.pem verify required
+  default_backend https_test
+
+backend http_test
+  mode http
+  balance random
   server s1 ${HOST}:${HTTP_PORT}
+
+backend https_test
+  mode http
+  balance random
+  server s2 ${HOST}:${HTTPS_PORT} ssl verify required ca-file ${INSTALL_ROOT}/openssl-master/conf/server.crt
 EOF
 }
 
@@ -135,5 +158,3 @@ function kill_haproxy {
 
     pkill -f haproxy
 }
-
-#TODO add options to configure server/client/both side certificate for haproxy

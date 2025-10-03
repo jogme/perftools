@@ -63,7 +63,7 @@ CERT_ALT_SUBJ=${BENCH_CERT_ALT_SUBJ:-'subjectAltName=DNS:localhost,IP:127.0.0.1'
 TEST_TIME=${BENCH_TEST_TIME:-'5M'}
 HOST=${BENCH_HOST:-'127.0.0.1'}
 APACHE_VERSION='2.4.65'
-HAPROXY=0
+HAPROXY='no'
 
 . ./common_util.sh
 . ./haproxy_bench.sh
@@ -812,18 +812,16 @@ function enable_mpm_prefork {
 
 function run_test {
 	typeset SSL_LIB=$1
-	typeset HTTP='https'
 	typeset i=0
 	typeset PORT=${HTTPS_PORT}
 	if [[ -z "${SSL_LIB}" ]] ; then
 		SSL_LIB='openssl-master'
 	fi
 	typeset RESULTS="${SSL_LIB}".txt
-    if [[ "${HAPROXY}" -eq 1 ]] ; then
-		RESULTS="${SSL_LIB}-haproxy.txt"
+    if [[ "${HAPROXY}" = 'no' ]] ; then
+		RESULTS="${SSL_LIB}-haproxy-${HAPROXY}.txt"
     fi
 	if [[ "${SSL_LIB}" = 'nossl' ]] ; then
-		HTTP='http'
 		SSL_LIB='openssl-master'
 		RESULTS='nossl.txt'
 		PORT=${HTTP_PORT}
@@ -846,14 +844,20 @@ function run_test {
 	#
 	rm -f siege_urls.txt
 	for i in `ls -1 ${HTDOCS}/*.txt` ; do
-        if [[ "${HAPROXY}" -eq 1 ]] && [[ "${SSL_LIB}" != "no-ssl" ]] ; then
-            echo "${HTTP}://${HOST}:${HAPROXY_HTTPS_PORT}/`basename $i`" >> siege_urls.txt
-        else
-            echo "${HTTP}://${HOST}:${PORT}/`basename $i`" >> siege_urls.txt
+        if  [[ "${HAPROXY}" = "no" ]] ; then
+            echo "http://${HOST}:${PORT}/`basename $i`" >> siege_urls.txt
+        elif [[ "${HAPROXY}" = "no-ssl" ]] ; then
+            echo "http://${HOST}:${HAPROXY_NOSSL_PORT}/`basename $i`" >> siege_urls.txt
+        elif [[ "${HAPROXY}" = "client" ]] ; then
+            echo "https://${HOST}:${HAPROXY_C2P_PORT}/`basename $i`" >> siege_urls.txt
+        elif [[ "${HAPROXY}" = "server" ]] ; then
+            echo "http://${HOST}:${HAPROXY_P2S_PORT}/`basename $i`" >> siege_urls.txt
+        elif [[ "${HAPROXY}" = "both" ]] ; then
+            echo "https://${HOST}:${HAPROXY_C2S_PORT}/`basename $i`" >> siege_urls.txt
         fi
 	done
 
-    if [[ "${HAPROXY}" -eq 1 ]] && [[ "${SSL_LIB}" != "no-ssl" ]] ; then
+    if [[ "${HAPROXY}" = 'no' ]] && [[ "${SSL_LIB}" != "no-ssl" ]] ; then
         run_haproxy
     fi
 
@@ -895,7 +899,7 @@ function run_test {
 	cp ${INSTALL_ROOT}/${SSL_LIB}/conf/extra/httpd-ssl.conf \
 	    ${RESULT_DIR}/httpd-ssl-${SSL_LIB}.conf
 
-    if [[ "${HAPROXY}" -eq 1 ]] && [[ "${SSL_LIB}" != "no-ssl" ]] ; then
+    if [[ "${HAPROXY}" = 'no' ]] && [[ "${SSL_LIB}" != "no-ssl" ]] ; then
         kill_haproxy
     fi
 }
@@ -993,16 +997,23 @@ function run_tests {
 
 	#enable_mpm_event
 	RESULT_DIR="${SAVE_RESULT_DIR}/event"
-	#run_test nossl
+	run_test nossl
+    HAPROXY='no-ssl'
+	run_test nossl
+    HAPROXY='no'
 	#for i in 3.0 3.1 3.2 3.3 3.4 3.5 3.6 ; do
 	#	enable_mpm_event openssl-${i}
 	#	run_test openssl-${i}
 	#done
 	enable_mpm_event openssl-master
 	run_test openssl-master
-    HAPROXY=1
+    HAPROXY='client'
 	run_test openssl-master
-    HAPROXY=0
+    HAPROXY='server'
+	run_test openssl-master
+    HAPROXY='both'
+	run_test openssl-master
+    HAPROXY='no'
 	#enable_mpm_event OpenSSL_1_1_1-stable
 	#run_test OpenSSL_1_1_1-stable
 	#enable_mpm_event libressl-4.1.0
@@ -1016,16 +1027,23 @@ function run_tests {
 
 	enable_mpm_worker
 	RESULT_DIR="${SAVE_RESULT_DIR}/worker"
-	#run_test nossl
+	run_test nossl
+    HAPROXY='no-ssl'
+	run_test nossl
+    HAPROXY='no'
 	#for i in 3.0 3.1 3.2 3.3 3.4 3.5 3.6 ; do
 	#	enable_mpm_worker openssl-${i}
 	#	run_test openssl-${i}
 	#done
 	enable_mpm_worker openssl-master
 	run_test openssl-master
-    HAPROXY=1
+    HAPROXY='client'
 	run_test openssl-master
-    HAPROXY=0
+    HAPROXY='server'
+	run_test openssl-master
+    HAPROXY='both'
+	run_test openssl-master
+    HAPROXY='no'
 	#enable_mpm_worker OpenSSL_1_1_1-stable
 	#run_test OpenSSL_1_1_1-stable
 	#enable_mpm_worker libressl-4.1.0
@@ -1039,16 +1057,27 @@ function run_tests {
 
 	enable_mpm_prefork
 	RESULT_DIR="${SAVE_RESULT_DIR}/pre-fork"
-	#run_test nossl
+	run_test nossl
+    HAPROXY='no-ssl'
+	run_test nossl
+    HAPROXY='server'
+	run_test openssl-master
+    HAPROXY='both'
+	run_test openssl-master
+    HAPROXY='no'
 	#for i in 3.0 3.1 3.2 3.3 3.4 3.5 3.6 ; do
 	#	enable_mpm_prefork openssl-${i}
 	#	run_test openssl-${i}
 	#done
 	enable_mpm_prefork openssl-master
 	run_test openssl-master
-    HAPROXY=1
+    HAPROXY='client'
 	run_test openssl-master
-    HAPROXY=0
+    HAPROXY='server'
+	run_test openssl-master
+    HAPROXY='both'
+	run_test openssl-master
+    HAPROXY='no'
 	#enable_mpm_prefork OpenSSL_1_1_1-stable
 	#run_test OpenSSL_1_1_1-stable
 	#enable_mpm_prefork libressl-4.1.0
