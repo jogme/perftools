@@ -63,12 +63,10 @@ CERT_ALT_SUBJ=${BENCH_CERT_ALT_SUBJ:-'subjectAltName=DNS:localhost,IP:127.0.0.1'
 TEST_TIME=${BENCH_TEST_TIME:-'5M'}
 HOST=${BENCH_HOST:-'127.0.0.1'}
 APACHE_VERSION='2.4.65'
-HAPROXY=1
+HAPROXY=0
 
 . ./common_util.sh
-if [[ ${HAPROXY} -eq 1 ]] ; then
-    . ./haproxy_bench.sh
-fi
+. ./haproxy_bench.sh
 
 function install_wolfssl_for_apache {
 	typeset VERSION=$1
@@ -821,6 +819,9 @@ function run_test {
 		SSL_LIB='openssl-master'
 	fi
 	typeset RESULTS="${SSL_LIB}".txt
+    if [[ "${HAPROXY}" -eq 1 ]] ; then
+		RESULTS="${SSL_LIB}-haproxy.txt"
+    fi
 	if [[ "${SSL_LIB}" = 'nossl' ]] ; then
 		HTTP='http'
 		SSL_LIB='openssl-master'
@@ -907,9 +908,7 @@ function setup_tests {
 	cd "${WORKSPACE_ROOT}"
 	clean_build
 
-    if [[ "${HAPROXY}" -eq 1 ]] && [[ "${SSL_LIB}" != "no-ssl" ]] ; then
-        install_haproxy
-    fi
+    install_haproxy
 
 	for i in 3.0 3.1 3.2 3.3 3.4 3.5 3.6 ; do
 		install_openssl openssl-$i ;
@@ -1001,6 +1000,9 @@ function run_tests {
 	done
 	enable_mpm_event openssl-master
 	run_test openssl-master
+    HAPROXY=1
+	run_test openssl-master
+    HAPROXY=0
 	enable_mpm_event OpenSSL_1_1_1-stable
 	run_test OpenSSL_1_1_1-stable
 	enable_mpm_event libressl-4.1.0
@@ -1021,6 +1023,9 @@ function run_tests {
 	done
 	enable_mpm_worker openssl-master
 	run_test openssl-master
+    HAPROXY=1
+	run_test openssl-master
+    HAPROXY=0
 	enable_mpm_worker OpenSSL_1_1_1-stable
 	run_test OpenSSL_1_1_1-stable
 	enable_mpm_worker libressl-4.1.0
@@ -1041,6 +1046,9 @@ function run_tests {
 	done
 	enable_mpm_prefork openssl-master
 	run_test openssl-master
+    HAPROXY=1
+	run_test openssl-master
+    HAPROXY=0
 	enable_mpm_prefork OpenSSL_1_1_1-stable
 	run_test OpenSSL_1_1_1-stable
 	enable_mpm_prefork libressl-4.1.0
