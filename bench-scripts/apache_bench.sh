@@ -1007,7 +1007,7 @@ function setup_tests {
 
 function run_tests {
 	typeset SAVE_RESULT_DIR="${RESULT_DIR}"
-	typeset HAPROXY_OPTIONS={'no', 'client', 'server', 'both'}
+	typeset HAPROXY_OPTIONS=('no' 'client' 'server' 'both')
 
 	for i in event worker pre-fork ; do
 		mkdir -p ${RESULT_DIR}/$i || exit 1
@@ -1026,7 +1026,7 @@ function run_tests {
 	enable_mpm_event openssl-master
 	for OPTION in ${HAPROXY_OPTIONS}
 	do
-		run_test openssl-master ${}
+		run_test openssl-master ${OPTION}
 	done
 	for OPTION in ${HAPROXY_OPTIONS}
 	do
