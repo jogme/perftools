@@ -812,11 +812,15 @@ function enable_mpm_prefork {
 
 function run_test {
 	typeset SSL_LIB=$1
+	typeset HAPROXY=$2
 	typeset i=0
 	typeset PORT=${HTTPS_PORT}
 	typeset PROTOCOL="https"
 	if [[ -z "${SSL_LIB}" ]] ; then
 		SSL_LIB='openssl-master'
+	fi
+	if [[ -z "${HAPROXY}" ]] ; then
+		HAPROXY='no'
 	fi
 	typeset RESULTS="${SSL_LIB}".txt
 	if [[ "${SSL_LIB}" = 'nossl' ]] ; then
@@ -913,7 +917,7 @@ function run_test {
 	    ${RESULT_DIR}/httpd-ssl-${SSL_LIB}.conf
 
 	if [[ "${HAPROXY}" = "server" ]] || [[ "${HAPROXY}" = "both" ]] ; then
-		conf_siege_haproxy_cert
+		unconf_siege_haproxy_cert
 	fi
 }
 
@@ -1003,6 +1007,7 @@ function setup_tests {
 
 function run_tests {
 	typeset SAVE_RESULT_DIR="${RESULT_DIR}"
+	typeset HAPROXY_OPTIONS={'no', 'client', 'server', 'both'}
 
 	for i in event worker pre-fork ; do
 		mkdir -p ${RESULT_DIR}/$i || exit 1
@@ -1013,22 +1018,20 @@ function run_tests {
 	enable_mpm_event
 	RESULT_DIR="${SAVE_RESULT_DIR}/event"
 	run_test nossl
-	HAPROXY='no-ssl'
-	run_test nossl
-	HAPROXY='no'
+	run_test nossl 'no-ssl'
 	for i in 3.0 3.1 3.2 3.3 3.4 3.5 3.6 ; do
 		enable_mpm_event openssl-${i}
 		run_test openssl-${i}
 	done
 	enable_mpm_event openssl-master
-	run_test openssl-master
-	HAPROXY='client'
-	run_test openssl-master
-	HAPROXY='server'
-	run_test openssl-master
-	HAPROXY='both'
-	run_test openssl-master
-	HAPROXY='no'
+	for OPTION in ${HAPROXY_OPTIONS}
+	do
+		run_test openssl-master ${}
+	done
+	for OPTION in ${HAPROXY_OPTIONS}
+	do
+		run_test openssl-master ${OPTION}
+	done
 	enable_mpm_event OpenSSL_1_1_1-stable
 	run_test OpenSSL_1_1_1-stable
 	enable_mpm_event libressl-4.1.0
@@ -1043,22 +1046,15 @@ function run_tests {
 	enable_mpm_worker
 	RESULT_DIR="${SAVE_RESULT_DIR}/worker"
 	run_test nossl
-	HAPROXY='no-ssl'
-	run_test nossl
-	HAPROXY='no'
+	run_test nossl 'no-ssl'
 	for i in 3.0 3.1 3.2 3.3 3.4 3.5 3.6 ; do
 		enable_mpm_worker openssl-${i}
 		run_test openssl-${i}
 	done
-	enable_mpm_worker openssl-master
-	run_test openssl-master
-	HAPROXY='client'
-	run_test openssl-master
-	HAPROXY='server'
-	run_test openssl-master
-	HAPROXY='both'
-	run_test openssl-master
-	HAPROXY='no'
+	for OPTION in ${HAPROXY_OPTIONS}
+	do
+		run_test openssl-master ${OPTION}
+	done
 	enable_mpm_worker OpenSSL_1_1_1-stable
 	run_test OpenSSL_1_1_1-stable
 	enable_mpm_worker libressl-4.1.0
@@ -1073,26 +1069,16 @@ function run_tests {
 	enable_mpm_prefork
 	RESULT_DIR="${SAVE_RESULT_DIR}/pre-fork"
 	run_test nossl
-	HAPROXY='no-ssl'
-	run_test nossl
-	HAPROXY='server'
-	run_test openssl-master
-	HAPROXY='both'
-	run_test openssl-master
-	HAPROXY='no'
+	run_test nossl 'no-ssl'
 	for i in 3.0 3.1 3.2 3.3 3.4 3.5 3.6 ; do
 		enable_mpm_prefork openssl-${i}
 		run_test openssl-${i}
 	done
 	enable_mpm_prefork openssl-master
-	run_test openssl-master
-	HAPROXY='client'
-	run_test openssl-master
-	HAPROXY='server'
-	run_test openssl-master
-	HAPROXY='both'
-	run_test openssl-master
-	HAPROXY='no'
+	for OPTION in ${HAPROXY_OPTIONS}
+	do
+		run_test openssl-master ${OPTION}
+	done
 	enable_mpm_prefork OpenSSL_1_1_1-stable
 	run_test OpenSSL_1_1_1-stable
 	enable_mpm_prefork libressl-4.1.0
