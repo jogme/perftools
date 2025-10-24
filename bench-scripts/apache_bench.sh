@@ -127,7 +127,7 @@ function bundle_apr {
 	typeset SAVE_CWD=`pwd`
 
 	if [[ ! -f "${WORKSPACE_ROOT}/${DOWNLOAD_FILE}" ]] ; then
-		wget -O "${WORKSPACE_ROOT}/${DOWNLOAD_FILE}" "${DOWNLOAD_LINK}" || exit 1
+		wget --no-check-certificate -O "${WORKSPACE_ROOT}/${DOWNLOAD_FILE}" "${DOWNLOAD_LINK}" || exit 1
 	fi
 
 	cd $1
@@ -139,7 +139,7 @@ function bundle_apr {
 	typeset DOWNLOAD_FILE="${BASENAME}-${VERSION}.${SUFFIX}"
 	typeset DOWNLOAD_LINK="${DOWNLOAD_URL}/${DOWNLOAD_FILE}"
 	if [[ ! -f "${WORKSPACE_ROOT}/${DOWNLOAD_FILE}" ]] ; then
-		wget -O "${WORKSPACE_ROOT}/${DOWNLOAD_FILE}" "${DOWNLOAD_LINK}" || exit 1
+		wget --no-check-certificate -O "${WORKSPACE_ROOT}/${DOWNLOAD_FILE}" "${DOWNLOAD_LINK}" || exit 1
 	fi
 	tar xzf "${WORKSPACE_ROOT}/${DOWNLOAD_FILE}"
 	mv "${BASENAME}-${VERSION}" "${BASENAME}" || exit 1
@@ -163,7 +163,7 @@ function install_apache {
 
 	cd "$WORKSPACE_ROOT"
 	if [[ ! -f "${DOWNLOAD_FILE}" ]] ; then
-		wget -O "$DOWNLOAD_FILE" "$DOWNLOAD_LINK" || exit 1
+		wget --no-check-certificate -O "$DOWNLOAD_FILE" "$DOWNLOAD_LINK" || exit 1
 	fi
 	tar xjf "${DOWNLOAD_FILE}" || exit 1
 	bundle_apr "${WORKSPACE_ROOT}/${BUILD_DIR}/srclib"
@@ -196,7 +196,7 @@ function install_apache_boring {
 
 	cd "$WORKSPACE_ROOT"
 	if [[ ! -f "${DOWNLOAD_FILE}" ]] ; then
-		wget -O "$DOWNLOAD_FILE" "$DOWNLOAD_LINK" || exit 1
+		wget --no-check-certificate -O "$DOWNLOAD_FILE" "$DOWNLOAD_LINK" || exit 1
 	fi
 	tar xjf "${DOWNLOAD_FILE}" || exit 1
 	bundle_apr "${WORKSPACE_ROOT}/${BUILD_DIR}/srclib"
@@ -474,7 +474,7 @@ function install_apache_aws {
 
 	cd "$WORKSPACE_ROOT"
 	if [[ ! -f "${DOWNLOAD_FILE}" ]] ; then
-		wget -O "$DOWNLOAD_FILE" "$DOWNLOAD_LINK" || exit 1
+		wget --no-check-certificate -O "$DOWNLOAD_FILE" "$DOWNLOAD_LINK" || exit 1
 	fi
 	tar xjf "${DOWNLOAD_FILE}" || exit 1
 	bundle_apr "${WORKSPACE_ROOT}/${BUILD_DIR}/srclib"
@@ -555,7 +555,7 @@ function install_pcre {
 	fi
 
 	if [[ ! -f "${DOWNLOAD_FILE}" ]] ; then
-		wget -O "${DOWNLOAD_FILE}" "${DOWNLOAD_LINK}" || exit 1
+		wget --no-check-certificate -O "${DOWNLOAD_FILE}" "${DOWNLOAD_LINK}" || exit 1
 	fi
 	tar xjf "${DOWNLOAD_FILE}" || exit 1
 	cd "${BUILD_DIR}"
@@ -584,7 +584,7 @@ function install_libtool {
 
 	cd "${WORKSPACE_ROOT}"
 	if [[ ! -f "${DOWNLOAD_FILE}" ]] ; then
-		wget -O "${DOWNLOAD_FILE}" "${DOWNLOAD_LINK}" || exit 1
+		wget --no-check-certificate -O "${DOWNLOAD_FILE}" "${DOWNLOAD_LINK}" || exit 1
 	fi
 	tar xzf "${DOWNLOAD_FILE}" || exit 1
 	cd "${BUILD_DIR}"
@@ -622,7 +622,7 @@ function install_wolf_apache {
 	DOWNLOAD_LINK="${DOWNLOAD_URL}/${DOWNLOAD_FILE}"
 	BUILD_DIR="${BASENAME}-${VERSION}"
 	if [[ ! -f "${DOWNLOAD_FILE}" ]] ; then
-		wget -O "$DOWNLOAD_FILE" "$DOWNLOAD_LINK" || exit 1
+		wget --no-check-certificate -O "$DOWNLOAD_FILE" "$DOWNLOAD_LINK" || exit 1
 	fi
 	tar xjf "${DOWNLOAD_FILE}" || exit 1
 	#

@@ -176,7 +176,7 @@ function install_libressl {
 
 	cd "$WORKSPACE_ROOT"
 	if [[ ! -f "${DOWNLOAD_FILE}" ]] ; then
-		wget -O "$DOWNLOAD_FILE" "$DOWNLOAD_LINK" || exit 1
+		wget --no-check-certificate -O "$DOWNLOAD_FILE" "$DOWNLOAD_LINK" || exit 1
 	fi
 	tar xzf "${DOWNLOAD_FILE}"
 	cd ${BUILD_DIR}
@@ -257,7 +257,7 @@ function install_siege {
 
 	cd "$WORKSPACE_ROOT"
 	if [[ ! -f "${DOWNLOAD_FILE}" ]] ; then
-		wget -O "$DOWNLOAD_FILE" "$DOWNLOAD_LINK" || exit 1
+		wget --no-check-certificate -O "$DOWNLOAD_FILE" "$DOWNLOAD_LINK" || exit 1
 	fi
 	tar xzf "${DOWNLOAD_FILE}"
 	cd ${BUILD_DIR}
